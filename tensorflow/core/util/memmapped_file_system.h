@@ -60,7 +60,7 @@ class MemmappedFileSystem : public FileSystem {
 
   MemmappedFileSystem();
   ~MemmappedFileSystem() override = default;
-  Status FileExists(const string& fname) override;
+  bool FileExists(const string& fname) override;
   Status NewRandomAccessFile(
       const string& filename,
       std::unique_ptr<RandomAccessFile>* result) override;

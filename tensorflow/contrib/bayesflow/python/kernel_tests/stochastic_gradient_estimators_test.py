@@ -22,7 +22,6 @@ import tensorflow as tf
 
 st = tf.contrib.bayesflow.stochastic_tensor
 sge = tf.contrib.bayesflow.stochastic_gradient_estimators
-dists = tf.contrib.distributions
 
 
 class StochasticGradientEstimatorsTest(tf.test.TestCase):
@@ -32,10 +31,10 @@ class StochasticGradientEstimatorsTest(tf.test.TestCase):
     self._final_loss = tf.constant(3.2)
 
   def _testScoreFunction(self, loss_fn, expected):
-    x = st.StochasticTensor(dists.Bernoulli(p=self._p), loss_fn=loss_fn)
+    x = st.BernoulliTensor(p=self._p, loss_fn=loss_fn)
     sf = x.loss(self._final_loss)
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.initialize_all_variables())
       self.assertAllClose(*sess.run([expected, sf]))
 
   def testScoreFunction(self):
@@ -63,8 +62,8 @@ class StochasticGradientEstimatorsTest(tf.test.TestCase):
   def testScoreFunctionWithMeanBaseline(self):
     ema_decay = 0.8
     num_steps = 6
-    x = st.StochasticTensor(
-        dists.Bernoulli(p=self._p),
+    x = st.BernoulliTensor(
+        p=self._p,
         loss_fn=sge.get_score_function_with_baseline(
             sge.get_mean_baseline(ema_decay)))
     sf = x.loss(self._final_loss)
@@ -80,7 +79,7 @@ class StochasticGradientEstimatorsTest(tf.test.TestCase):
     expected = tf.log(self._p) * (self._final_loss - baseline)
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.initialize_all_variables())
       for _ in range(num_steps - 1):
         sess.run(sf)  # run to update EMA
       self.assertAllClose(*sess.run([expected, sf]))
@@ -99,19 +98,19 @@ class StochasticGradientEstimatorsTest(tf.test.TestCase):
 
   def testScoreFunctionWithMeanBaselineHasUniqueVarScope(self):
     ema_decay = 0.8
-    x = st.StochasticTensor(
-        dists.Bernoulli(p=self._p),
+    x = st.BernoulliTensor(
+        p=self._p,
         loss_fn=sge.get_score_function_with_baseline(
             sge.get_mean_baseline(ema_decay)))
-    y = st.StochasticTensor(
-        dists.Bernoulli(p=self._p),
+    y = st.BernoulliTensor(
+        p=self._p,
         loss_fn=sge.get_score_function_with_baseline(
             sge.get_mean_baseline(ema_decay)))
     sf_x = x.loss(self._final_loss)
     sf_y = y.loss(self._final_loss)
     with self.test_session() as sess:
       # Smoke test
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.initialize_all_variables())
       sess.run([sf_x, sf_y])
 
 

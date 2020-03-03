@@ -267,7 +267,7 @@ struct ApplyCenteredRMSProp<CPUDevice, T> {
                   typename TTypes<T>::ConstFlat grad) {
     ms.device(d) += (grad.square() - ms) * (static_cast<T>(1) - rho());
     mg.device(d) += (grad - mg) * (static_cast<T>(1) - rho());
-    auto denom = (ms - mg.square()) + epsilon();
+    auto denom = ms + epsilon() - mg.square();
     mom.device(d) = mom * momentum() + (grad * lr()) / denom.sqrt();
     var.device(d) -= mom;
   }
@@ -351,7 +351,7 @@ TF_CALL_half(REGISTER_CPU_KERNELS);
 TF_CALL_float(REGISTER_CPU_KERNELS);
 TF_CALL_double(REGISTER_CPU_KERNELS);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T)                             \
@@ -361,16 +361,16 @@ namespace functor {
       typename TTypes<T>::ConstScalar alpha,            \
       typename TTypes<T>::ConstFlat delta);             \
   extern template struct ApplyGradientDescent<GPUDevice, T>;
-DECLARE_GPU_SPEC(Eigen::half);
+// DECLARE_GPU_SPEC(Eigen::half);
 DECLARE_GPU_SPEC(float);
-DECLARE_GPU_SPEC(double);
+// DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNELS(GPU, Eigen::half);
+// REGISTER_KERNELS(GPU, Eigen::half);
 REGISTER_KERNELS(GPU, float);
-REGISTER_KERNELS(GPU, double);
-#endif
+// REGISTER_KERNELS(GPU, double);
+// #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
 
@@ -479,7 +479,7 @@ TF_CALL_half(REGISTER_CPU_KERNELS);
 TF_CALL_float(REGISTER_CPU_KERNELS);
 TF_CALL_double(REGISTER_CPU_KERNELS);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T)                                                    \
@@ -491,16 +491,16 @@ namespace functor {
       typename TTypes<T>::ConstScalar epsilon,                                 \
       typename TTypes<T>::ConstFlat grad);                                     \
   extern template struct ApplyAdadelta<GPUDevice, T>;
-DECLARE_GPU_SPEC(Eigen::half);
+// DECLARE_GPU_SPEC(Eigen::half);
 DECLARE_GPU_SPEC(float);
-DECLARE_GPU_SPEC(double);
+// DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNELS(GPU, Eigen::half);
+// REGISTER_KERNELS(GPU, Eigen::half);
 REGISTER_KERNELS(GPU, float);
-REGISTER_KERNELS(GPU, double);
-#endif
+// REGISTER_KERNELS(GPU, double);
+// #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
 
@@ -902,7 +902,7 @@ TF_CALL_half(REGISTER_CPU_KERNELS);
 TF_CALL_float(REGISTER_CPU_KERNELS);
 TF_CALL_double(REGISTER_CPU_KERNELS);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T)                                               \
@@ -912,16 +912,16 @@ namespace functor {
       typename TTypes<T>::Flat accum, typename TTypes<T>::ConstScalar lr, \
       typename TTypes<T>::ConstFlat grad);                                \
   extern template struct ApplyAdagrad<GPUDevice, T>;
-DECLARE_GPU_SPEC(Eigen::half);
+// DECLARE_GPU_SPEC(Eigen::half);
 DECLARE_GPU_SPEC(float);
-DECLARE_GPU_SPEC(double);
+// DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNELS(GPU, Eigen::half);
+// REGISTER_KERNELS(GPU, Eigen::half);
 REGISTER_KERNELS(GPU, float);
-REGISTER_KERNELS(GPU, double);
-#endif
+// REGISTER_KERNELS(GPU, double);
+// #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
 
@@ -1913,7 +1913,7 @@ TF_CALL_half(REGISTER_CPU_KERNELS);
 TF_CALL_float(REGISTER_CPU_KERNELS);
 TF_CALL_double(REGISTER_CPU_KERNELS);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T)                                               \
@@ -1924,16 +1924,16 @@ namespace functor {
       typename TTypes<T>::ConstFlat grad,                                 \
       typename TTypes<T>::ConstScalar momentum, bool use_nesterov);       \
   extern template struct ApplyMomentum<GPUDevice, T>;
-DECLARE_GPU_SPEC(Eigen::half);
+// DECLARE_GPU_SPEC(Eigen::half);
 DECLARE_GPU_SPEC(float);
-DECLARE_GPU_SPEC(double);
+// DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNELS(GPU, Eigen::half);
+// REGISTER_KERNELS(GPU, Eigen::half);
 REGISTER_KERNELS(GPU, float);
-REGISTER_KERNELS(GPU, double);
-#endif
+// REGISTER_KERNELS(GPU, double);
+// #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
 
@@ -2139,7 +2139,7 @@ TF_CALL_half(REGISTER_CPU_KERNELS);
 TF_CALL_float(REGISTER_CPU_KERNELS);
 TF_CALL_double(REGISTER_CPU_KERNELS);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T)                                   \
@@ -2155,16 +2155,16 @@ namespace functor {
       typename TTypes<T>::ConstScalar epsilon,                \
       typename TTypes<T>::ConstFlat grad);                    \
   extern template struct ApplyAdam<GPUDevice, T>;
-DECLARE_GPU_SPEC(Eigen::half);
+// DECLARE_GPU_SPEC(Eigen::half);
 DECLARE_GPU_SPEC(float);
-DECLARE_GPU_SPEC(double);
+// DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNELS(GPU, Eigen::half);
+// REGISTER_KERNELS(GPU, Eigen::half);
 REGISTER_KERNELS(GPU, float);
-REGISTER_KERNELS(GPU, double);
-#endif
+// REGISTER_KERNELS(GPU, double);
+// #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
 
@@ -2344,7 +2344,7 @@ TF_CALL_half(REGISTER_CPU_KERNELS);
 TF_CALL_float(REGISTER_CPU_KERNELS);
 TF_CALL_double(REGISTER_CPU_KERNELS);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T)                                                    \
@@ -2367,16 +2367,16 @@ namespace functor {
       typename TTypes<T>::ConstScalar epsilon,                                 \
       typename TTypes<T>::ConstFlat grad);                                     \
   extern template struct ApplyCenteredRMSProp<GPUDevice, T>;
-DECLARE_GPU_SPEC(Eigen::half);
+// DECLARE_GPU_SPEC(Eigen::half);
 DECLARE_GPU_SPEC(float);
-DECLARE_GPU_SPEC(double);
+// DECLARE_GPU_SPEC(double);
 #undef DECLARE_GPU_SPEC
 }  // namespace functor
 
-REGISTER_KERNELS(GPU, Eigen::half);
+// REGISTER_KERNELS(GPU, Eigen::half);
 REGISTER_KERNELS(GPU, float);
-REGISTER_KERNELS(GPU, double);
-#endif
+// REGISTER_KERNELS(GPU, double);
+// #endif
 #undef REGISTER_CPU_KERNELS
 #undef REGISTER_KERNELS
 

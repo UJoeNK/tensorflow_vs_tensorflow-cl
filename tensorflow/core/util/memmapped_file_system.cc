@@ -79,15 +79,12 @@ class RandomAccessFileFromMemmapped : public RandomAccessFile {
 
 MemmappedFileSystem::MemmappedFileSystem() {}
 
-Status MemmappedFileSystem::FileExists(const string& fname) {
+bool MemmappedFileSystem::FileExists(const string& fname) {
   if (!mapped_memory_) {
-    return errors::FailedPrecondition("MemmappedEnv is not initialized");
+    return false;
   }
   const auto dir_element = directory_.find(fname);
-  if (dir_element != directory_.end()) {
-    return Status::OK();
-  }
-  return errors::NotFound(fname, " not found");
+  return dir_element != directory_.end();
 }
 
 Status MemmappedFileSystem::NewRandomAccessFile(

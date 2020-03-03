@@ -23,7 +23,6 @@ import os
 import shutil
 
 from tensorflow.python.framework import test_util
-from tensorflow.python.platform import gfile
 from tensorflow.python.platform import googletest
 from tensorflow.python.summary.impl import directory_watcher
 from tensorflow.python.summary.impl import io_wrapper
@@ -194,12 +193,10 @@ class DirectoryWatcherTest(test_util.TensorFlowTestCase):
 
     FakeFactory.has_been_called = False
 
-    for stub_name in ['ListDirectoryAbsolute', 'ListRecursively']:
+    for stub_name in ['ListDirectoryAbsolute', 'ListRecursively', 'IsDirectory',
+                      'Exists', 'Size']:
       self.stubs.Set(io_wrapper, stub_name,
                      FakeFactory(getattr(io_wrapper, stub_name)))
-    for stub_name in ['IsDirectory', 'Exists', 'Stat']:
-      self.stubs.Set(gfile, stub_name,
-                     FakeFactory(getattr(gfile, stub_name)))
 
     with self.assertRaises((IOError, OSError)):
       self._LoadAllEvents()

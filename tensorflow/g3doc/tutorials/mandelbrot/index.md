@@ -72,7 +72,7 @@ ns = tf.Variable(tf.zeros_like(xs, tf.float32))
 TensorFlow requires that you explicitly initialize variables before using them.
 
 ```python
-tf.global_variables_initializer().run()
+tf.initialize_all_variables().run()
 ```
 
 ## Defining and Running the Computation

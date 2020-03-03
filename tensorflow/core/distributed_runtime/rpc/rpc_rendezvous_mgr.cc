@@ -156,7 +156,7 @@ class RpcRecvTensorFreeList {
  public:
   RpcRecvTensorFreeList() {}
   ~RpcRecvTensorFreeList() {
-    for (size_t i = 0; i < objects_.size(); i++) {
+    for (int i = 0; i < objects_.size(); i++) {
       delete objects_[i];
     }
   }
@@ -231,14 +231,14 @@ class WorkerFreeListCache : public WorkerCacheInterface {
     // TODO(jeff,sanjay): Should decrement ref-count when we implement eviction.
   }
 
-  bool GetDeviceLocalityNonBlocking(const string& device,
-                                    DeviceLocality* locality) override {
-    return wrapped_->GetDeviceLocalityNonBlocking(device, locality);
+  bool GetDeviceBusNonBlocking(const string& device,
+                               BusAdjacency* ba) override {
+    return wrapped_->GetDeviceBusNonBlocking(device, ba);
   }
 
-  void GetDeviceLocalityAsync(const string& device, DeviceLocality* locality,
-                              StatusCallback done) override {
-    wrapped_->GetDeviceLocalityAsync(device, locality, done);
+  void GetDeviceBusAsync(const string& device, BusAdjacency* ba,
+                         StatusCallback done) override {
+    wrapped_->GetDeviceBusAsync(device, ba, done);
   }
 
   void SetLogging(bool active) override { wrapped_->SetLogging(active); }

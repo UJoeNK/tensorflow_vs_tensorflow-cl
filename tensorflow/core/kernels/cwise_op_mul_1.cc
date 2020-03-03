@@ -19,20 +19,10 @@ namespace tensorflow {
 
 REGISTER5(BinaryOp, CPU, "Mul", functor::mul, float, Eigen::half, double,
           uint8, int32);
-
-#if TENSORFLOW_USE_SYCL
-#define REGISTER_SYCL_KERNEL(TYPE)                                    \
-  REGISTER_KERNEL_BUILDER(                                            \
-                          Name("Mul")                                 \
-                          .Device(DEVICE_SYCL)                        \
-                          .TypeConstraint<TYPE>("T"),                 \
-                          BinaryOp<SYCLDevice, functor::mul<TYPE>>);
-REGISTER_SYCL_KERNEL(float)
-#undef REGISTER_SYCL_KERNEL
-#endif // TENSORFLOW_USE_SYCL
-#if GOOGLE_CUDA
-REGISTER4(BinaryOp, GPU, "Mul", functor::mul, float, Eigen::half, double,
-           uint8);
+// #if GOOGLE_CUDA
+// REGISTER4(BinaryOp, GPU, "Mul", functor::mul, float, Eigen::half, double,
+//            uint8);
+REGISTER(BinaryOp, GPU, "Mul", functor::mul, float);
 // A special GPU kernel for int32.
 // TODO(b/25387198): Also enable int32 in device memory. This kernel
 // registration requires all int32 inputs and outputs to be in host memory.
@@ -43,6 +33,6 @@ REGISTER_KERNEL_BUILDER(Name("Mul")
                             .HostMemory("z")
                             .TypeConstraint<int32>("T"),
                         BinaryOp<CPUDevice, functor::mul<int32>>);
-#endif
+// #endif
 
 }  // namespace tensorflow

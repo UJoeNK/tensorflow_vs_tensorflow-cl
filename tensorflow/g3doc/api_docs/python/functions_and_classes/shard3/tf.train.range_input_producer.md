@@ -2,9 +2,6 @@
 
 Produces the integers from 0 to limit-1 in a queue.
 
-Note: if `num_epochs` is not `None`, this function creates local counter
-`epochs`. Use `local_variable_initializer()` to initialize local variables.
-
 ##### Args:
 
 

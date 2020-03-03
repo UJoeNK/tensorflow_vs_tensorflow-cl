@@ -46,22 +46,21 @@ int ParseFlagsAndConvertGraph(int argc, char* argv[]) {
   string out_graph = "";
   string inputs_string = "";
   string outputs_string = "";
-  std::vector<Flag> flag_list = {
-      Flag("in_graph", &in_graph, "input graph file name"),
-      Flag("out_graph", &out_graph, "output graph file name"),
-      Flag("inputs", &inputs_string, "inputs"),
-      Flag("outputs", &outputs_string, "outputs"),
-  };
-  string usage = Flags::Usage(argv[0], flag_list);
-  const bool parse_result = Flags::Parse(&argc, argv, flag_list);
+  const bool parse_result =
+      ParseFlags(&argc, argv, {
+                                  Flag("in_graph", &in_graph),       //
+                                  Flag("out_graph", &out_graph),     //
+                                  Flag("inputs", &inputs_string),    //
+                                  Flag("outputs", &outputs_string),  //
+                              });
   // We need to call this to set up global state for TensorFlow.
   port::InitMain(argv[0], &argc, &argv);
   if (!parse_result) {
-    LOG(ERROR) << usage;
+    LOG(ERROR) << "Error parsing command-line flags.";
     return -1;
   }
   if (argc > 1) {
-    LOG(ERROR) << "Unknown argument " << argv[1] << "\n" << usage;
+    LOG(ERROR) << "Unknown argument " << argv[1];
     return -1;
   }
   if (in_graph.empty()) {

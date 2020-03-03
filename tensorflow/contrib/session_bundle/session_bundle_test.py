@@ -117,7 +117,7 @@ class SessionBundleLoadNoVarsTest(tf.test.TestCase):
       tf.add_to_collection("meta", "this is meta")
 
       with self.test_session(graph=g) as session:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         new_graph_def = graph_util.convert_variables_to_constants(
             session, g.as_graph_def(), ["y"])
 

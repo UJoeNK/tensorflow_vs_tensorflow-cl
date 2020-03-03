@@ -7,7 +7,6 @@ exports_files(["LICENSE"])
 
 package(default_visibility = ["//tensorflow:__subpackages__"])
 
-load("//tensorflow:tensorflow.bzl", "cuda_py_test")
 load("//tensorflow:tensorflow.bzl", "tf_custom_op_library")
 load("//tensorflow:tensorflow.bzl", "tf_gen_op_libs")
 load("//tensorflow:tensorflow.bzl", "tf_gen_op_wrapper_py")
@@ -30,7 +29,7 @@ tf_gen_op_libs(
 
 tf_gen_op_wrapper_py(
     name = "bucketization_op",
-    deps = [":bucketization_op_op_lib"],
+    deps = ["//tensorflow/contrib/layers:bucketization_op_op_lib"],
 )
 
 tf_kernel_library(
@@ -59,7 +58,7 @@ tf_gen_op_libs(
 
 tf_gen_op_wrapper_py(
     name = "sparse_feature_cross_op",
-    deps = [":sparse_feature_cross_op_op_lib"],
+    deps = ["//tensorflow/contrib/layers:sparse_feature_cross_op_op_lib"],
 )
 
 tf_kernel_library(
@@ -85,11 +84,12 @@ py_library(
     ],
 )
 
-cuda_py_test(
+py_test(
     name = "layers_test",
     size = "small",
     srcs = ["python/layers/layers_test.py"],
-    additional_deps = [
+    srcs_version = "PY2AND3",
+    deps = [
         ":layers_py",
         "//tensorflow:tensorflow_py",
         "//tensorflow/python:framework_test_lib",
@@ -230,32 +230,6 @@ py_test(
     name = "utils_test",
     size = "small",
     srcs = ["python/layers/utils_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":layers_py",
-        "//tensorflow:tensorflow_py",
-        "//tensorflow/python:framework_test_lib",
-        "//tensorflow/python:platform_test",
-    ],
-)
-
-py_test(
-    name = "sparse_ops_test",
-    size = "small",
-    srcs = ["python/ops/sparse_ops_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":layers_py",
-        "//tensorflow:tensorflow_py",
-        "//tensorflow/python:framework_test_lib",
-        "//tensorflow/python:platform_test",
-    ],
-)
-
-py_test(
-    name = "encoders_test",
-    size = "small",
-    srcs = ["python/layers/encoders_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":layers_py",

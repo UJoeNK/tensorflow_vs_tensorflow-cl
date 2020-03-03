@@ -35,4 +35,3 @@ from __future__ import print_function
 
 # pylint: disable=unused-import,wildcard-import
 from tensorflow.contrib.lookup.lookup_ops import *
-# pylint: enable=unused-import,wildcard-import

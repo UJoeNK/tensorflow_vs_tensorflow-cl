@@ -20,8 +20,7 @@ limitations under the License.
 // mobile.
 
 #if !defined(PLATFORM_POSIX) && !defined(PLATFORM_GOOGLE) && \
-    !defined(PLATFORM_POSIX_ANDROID) && !defined(PLATFORM_GOOGLE_ANDROID) && \
-    !defined(PLATFORM_WINDOWS)
+    !defined(PLATFORM_POSIX_ANDROID) && !defined(PLATFORM_GOOGLE_ANDROID)
 
 // Choose which platform we are on.
 #if defined(ANDROID) || defined(__ANDROID__)

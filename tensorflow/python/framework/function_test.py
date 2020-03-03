@@ -166,32 +166,6 @@ class FunctionTest(tf.test.TestCase):
       self.assertEqual(x.get_shape(), dx.get_shape())
       self.assertEqual(y.get_shape(), dy.get_shape())
 
-  def testSymGradAttr(self):
-
-    @function.Defun(noinline=True)
-    def Foo(x):
-      return x * 2
-
-    self.assertTrue(
-        Foo.instantiate([tf.float32]).definition.attr["_noinline"].b)
-
-    g = tf.Graph()
-    with g.as_default():
-      x = tf.constant(3.0)
-      y = Foo(x)
-      dx, = tf.gradients(y, [x])
-
-    cfg = tf.ConfigProto(graph_options=tf.GraphOptions(
-        optimizer_options=tf.OptimizerOptions(
-            opt_level=tf.OptimizerOptions.L0,
-            do_common_subexpression_elimination=True,
-            do_function_inlining=True,
-            do_constant_folding=True)))
-
-    with self.test_session(graph=g, config=cfg):
-      self.assertAllClose(y.eval(), 6.)
-      self.assertAllClose(dx.eval(), 2.)
-
   def testZNoDepOnY(self):
 
     @function.Defun(tf.float32, tf.float32)
@@ -293,7 +267,7 @@ class FunctionTest(tf.test.TestCase):
       z = Foo(v)
 
     with self.test_session(graph=g):
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(z.eval(), 101.)
 
   def testDefineErrors(self):
@@ -541,7 +515,7 @@ class FunctionTest(tf.test.TestCase):
       y = Foo(tf.constant([[10.]]))
 
     with self.test_session(graph=g):
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(y.eval(), [[12.0]])
 
   def testCaptureControls(self):
@@ -559,14 +533,6 @@ class FunctionTest(tf.test.TestCase):
       with self.assertRaisesRegexp(ValueError, "not an element of this graph."):
         # NOTE: We still do not support capturing control deps.
         _ = Foo(x)
-
-  def testStableName(self):
-
-    @function.Defun()
-    def Foo(x, y, z):
-      return tf.tanh(tf.matmul(x, y) + z)
-
-    self.assertEqual("Foo_158cce4d", Foo.instantiate([tf.float32] * 3).name)
 
 
 class FunctionOverloadTest(tf.test.TestCase):
@@ -647,7 +613,7 @@ class UnrollLSTMTest(tf.test.TestCase):
   def _BuildForward(self, weights, inp, mode="cell"):
 
     def Loop(cell, w, i):
-      x = tf.unstack(i, self.NUM_UNROLL)
+      x = tf.unpack(i, self.NUM_UNROLL)
       m = tf.zeros_like(x[0])
       c = tf.zeros_like(x[0])
       for i in range(self.NUM_UNROLL):
@@ -685,7 +651,7 @@ class UnrollLSTMTest(tf.test.TestCase):
 
       @function.Defun(tf.float32, tf.float32)
       def LSTMLoop10(weights, inp):
-        x = tf.unstack(inp, self.NUM_UNROLL)
+        x = tf.unpack(inp, self.NUM_UNROLL)
         m = tf.zeros_like(x[0])
         c = tf.zeros_like(x[0])
         assert self.NUM_UNROLL % 10 == 0
@@ -764,6 +730,7 @@ class FunctionInlineControlTest(tf.test.TestCase):
             do_constant_folding=True)))
     for noinline in [False, True]:
 
+      # pylint: disable=unexpected-keyword-arg
       @function.Defun(dtype, noinline=noinline)
       def Cell(v):
         # If v is a vector [n, 1], x is a big square matrix.
@@ -777,8 +744,6 @@ class FunctionInlineControlTest(tf.test.TestCase):
           x = Cell(x)
         return tf.reduce_sum(x, [0, 1])
 
-      self.assertEqual(noinline, Cell.definition.attr["_noinline"].b)
-
       g = tf.Graph()
       with g.as_default():
         x = tf.placeholder(dtype)
@@ -787,24 +752,11 @@ class FunctionInlineControlTest(tf.test.TestCase):
 
       np.random.seed(321)
       inp = np.random.uniform(-1, 1, [16, 1]).astype(np.float32)
-      run_metadata = tf.RunMetadata()
       with tf.Session(graph=g, config=cfg) as sess:
-        ans = sess.run(
-            [y, dx], {x: inp},
-            run_metadata=run_metadata,
-            options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE))
+        ans = sess.run([y, dx], {x: inp})
         print(ans[0], np.sum(ans[1]))
         self.assertAllClose(ans[0], 255.971, rtol=1e-3)
         self.assertAllClose(np.sum(ans[1]), 13.0408, rtol=1e-3)
-
-      def MetadataHasCell(run_metadata):
-        for dev_stats in run_metadata.step_stats.dev_stats:
-          for node_stats in dev_stats.node_stats:
-            if "Cell" in node_stats.timeline_label:
-              return True
-        return False
-
-      self.assertEqual(MetadataHasCell(run_metadata), noinline)
 
 
 @function.Defun(*[tf.float32] * 3)
@@ -852,10 +804,7 @@ class VariableHoistingTest(tf.test.TestCase):
       else:
         y = _Model(x)
       loss = tf.reduce_mean(tf.reduce_sum(y0 * tf.log(y), 1), 0)
-      arg_w, arg_b = function.get_extra_args()
-      self.assertEqual(arg_w.get_shape(), tf.TensorShape([64, 64]))
-      self.assertEqual(arg_b.get_shape(), tf.TensorShape([64]))
-      dw, db = tf.gradients(loss, [arg_w, arg_b])
+      dw, db = tf.gradients(loss, function.get_extra_args())
       cvars.extend(function.get_extra_vars())
       return loss, dw, db
 
@@ -872,7 +821,7 @@ class VariableHoistingTest(tf.test.TestCase):
     self.assertEqual("Foo/b", b.op.name)
 
     with self.test_session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.initialize_all_variables())
       w, b, x, y0, loss, dw, db = sess.run([w, b, x, y0, loss, dw, db])
 
     self.assertAllEqual(w.shape, (64, 64))

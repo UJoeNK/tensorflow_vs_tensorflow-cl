@@ -16,9 +16,6 @@ limitations under the License.
 // See docs in ../ops/array_ops.cc.
 
 #define EIGEN_USE_THREADS
-#if TENSORFLOW_USE_SYCL
-#define EIGEN_USE_SYCL
-#endif
 
 #include "tensorflow/core/kernels/constant_op.h"
 
@@ -54,35 +51,26 @@ ConstantOp::~ConstantOp() {}
 
 REGISTER_KERNEL_BUILDER(Name("Const").Device(DEVICE_CPU), ConstantOp);
 
-#if TENSORFLOW_USE_SYCL
-#define REGISTER_SYCL_KERNEL(TYPE)                                     \
-  REGISTER_KERNEL_BUILDER(                                             \
-      Name("Const").Device(DEVICE_SYCL).TypeConstraint<TYPE>("dtype"), \
-      ConstantOp);
-TF_CALL_NUMBER_TYPES(REGISTER_SYCL_KERNEL);
-#undef REGISTER_SYCL_KERNEL
-#endif
-
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 #define REGISTER_KERNEL(D, TYPE)                                      \
   REGISTER_KERNEL_BUILDER(                                            \
       Name("Const").Device(DEVICE_##D).TypeConstraint<TYPE>("dtype"), \
       ConstantOp);
-REGISTER_KERNEL(GPU, Eigen::half);
-REGISTER_KERNEL(GPU, bfloat16);
+// REGISTER_KERNEL(GPU, Eigen::half);
+// REGISTER_KERNEL(GPU, bfloat16);
 REGISTER_KERNEL(GPU, float);
-REGISTER_KERNEL(GPU, double);
-REGISTER_KERNEL(GPU, uint8);
-REGISTER_KERNEL(GPU, int8);
-REGISTER_KERNEL(GPU, uint16);
-REGISTER_KERNEL(GPU, int16);
-REGISTER_KERNEL(GPU, int64);
-REGISTER_KERNEL(GPU, complex64);
-REGISTER_KERNEL(GPU, complex128);
-REGISTER_KERNEL(GPU, bool);
+// REGISTER_KERNEL(GPU, double);
+// REGISTER_KERNEL(GPU, uint8);
+// REGISTER_KERNEL(GPU, int8);
+// REGISTER_KERNEL(GPU, uint16);
+// REGISTER_KERNEL(GPU, int16);
+// REGISTER_KERNEL(GPU, int64);
+// REGISTER_KERNEL(GPU, complex64);
+// REGISTER_KERNEL(GPU, complex128);
+// REGISTER_KERNEL(GPU, bool);
 // Currently we do not support string constants on GPU
 #undef REGISTER_KERNEL
-#endif
+// #endif
 
 HostConstantOp::HostConstantOp(OpKernelConstruction* ctx)
     : OpKernel(ctx), tensor_(ctx->output_type(0)) {
@@ -103,7 +91,7 @@ void HostConstantOp::Compute(OpKernelContext* ctx) {
   ctx->set_output(0, tensor_);
 }
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // A special GPU kernel for int32.
 // TODO(b/25387198): Also enable int32 in device memory. This kernel
 // registration requires all int32 inputs and outputs to be in host memory.
@@ -112,7 +100,7 @@ REGISTER_KERNEL_BUILDER(Name("Const")
                             .HostMemory("output")
                             .TypeConstraint<int32>("dtype"),
                         HostConstantOp);
-#endif
+// #endif
 
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
@@ -167,20 +155,17 @@ class FillOp : public OpKernel {
 
 #define REGISTER_CPU_KERNEL(TYPE) REGISTER_KERNEL(CPU, TYPE)
 TF_CALL_ALL_TYPES(REGISTER_CPU_KERNEL);
-// TODO(b/28917570): Add a test for this. Currently python 3 is not happy about
-// the conversion from uint8 to quint8.
-REGISTER_KERNEL(CPU, quint8);
 #undef REGISTER_CPU_KERNEL
 
-#if GOOGLE_CUDA
-REGISTER_KERNEL(GPU, Eigen::half);
+// #if GOOGLE_CUDA
+// REGISTER_KERNEL(GPU, Eigen::half);
 REGISTER_KERNEL(GPU, float);
-REGISTER_KERNEL(GPU, double);
-REGISTER_KERNEL(GPU, uint8);
-REGISTER_KERNEL(GPU, int8);
-REGISTER_KERNEL(GPU, uint16);
-REGISTER_KERNEL(GPU, int16);
-REGISTER_KERNEL(GPU, int64);
+// REGISTER_KERNEL(GPU, double);
+// REGISTER_KERNEL(GPU, uint8);
+// REGISTER_KERNEL(GPU, int8);
+// REGISTER_KERNEL(GPU, uint16);
+// REGISTER_KERNEL(GPU, int16);
+// REGISTER_KERNEL(GPU, int64);
 // Currently we do not support filling strings and complex64 on GPU
 
 // A special GPU kernel for int32.
@@ -193,7 +178,7 @@ REGISTER_KERNEL_BUILDER(Name("Fill")
                             .HostMemory("value")
                             .HostMemory("output"),
                         FillOp<CPUDevice, int32>);
-#endif
+// #endif
 
 #undef REGISTER_KERNEL
 
@@ -220,20 +205,18 @@ class ZerosLikeOp : public OpKernel {
 TF_CALL_ALL_TYPES(REGISTER_CPU);
 #undef REGISTER_CPU
 
-#if GOOGLE_CUDA
-REGISTER_KERNEL(bool, GPU);
-REGISTER_KERNEL(Eigen::half, GPU);
+// #if GOOGLE_CUDA
+// REGISTER_KERNEL(Eigen::half, GPU);
 REGISTER_KERNEL(float, GPU);
-REGISTER_KERNEL(double, GPU);
-REGISTER_KERNEL(complex64, GPU);
-REGISTER_KERNEL(complex128, GPU);
-REGISTER_KERNEL(int64, GPU);
+// REGISTER_KERNEL(double, GPU);
+// REGISTER_KERNEL(complex64, GPU);
+// REGISTER_KERNEL(complex128, GPU);
 REGISTER_KERNEL_BUILDER(Name("ZerosLike")
                             .Device(DEVICE_GPU)
                             .TypeConstraint<int32>("T")
                             .HostMemory("y"),
                         ZerosLikeOp<CPUDevice, int32>);
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 #undef REGISTER_KERNEL
 
@@ -263,14 +246,10 @@ class PlaceholderOp : public OpKernel {
 };
 
 REGISTER_KERNEL_BUILDER(Name("Placeholder").Device(DEVICE_CPU), PlaceholderOp);
-REGISTER_KERNEL_BUILDER(Name("PlaceholderV2").Device(DEVICE_CPU),
-                        PlaceholderOp);
 // The following GPU kernel registration is used to address the situation that
 // a placeholder is added in a GPU device context and soft placement is false.
 // Since a placeholder should never be executed, adding these GPU kernels has
 // no effect on graph execution.
 REGISTER_KERNEL_BUILDER(Name("Placeholder").Device(DEVICE_GPU), PlaceholderOp);
-REGISTER_KERNEL_BUILDER(Name("PlaceholderV2").Device(DEVICE_GPU),
-                        PlaceholderOp);
 
 }  // namespace tensorflow

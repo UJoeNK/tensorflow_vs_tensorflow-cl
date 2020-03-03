@@ -41,15 +41,9 @@ class TransformerTest(tf.test.TestCase):
         boundaries=[0., 10., 100.])
     # buckets 2, 3, 0
     features = {"price": tf.constant([[20.], [110], [-3]])}
-
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[bucket])
-    self.assertEqual(len(output), 1)
-    self.assertIn(bucket, output)
+    output = feature_column_ops._Transformer(features).transform(bucket)
     with self.test_session():
-      self.assertAllEqual(output[bucket].eval(), [[2], [3], [0]])
-
+      self.assertAllEqual(output.eval(), [[2], [3], [0]])
 
   def testBucketizedColumnWithMultiDimensions(self):
     bucket = tf.contrib.layers.bucketized_column(
@@ -82,19 +76,12 @@ class TransformerTest(tf.test.TestCase):
                                   indices=[[0, 0], [1, 0], [1, 1]],
                                   shape=[2, 2])
     features = {"wire": wire_tensor}
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[hashed_sparse])
-    self.assertEqual(len(output), 1)
-    self.assertIn(hashed_sparse, output)
+    output = feature_column_ops._Transformer(features).transform(hashed_sparse)
     with self.test_session():
-      self.assertEqual(output[hashed_sparse].values.dtype, tf.int64)
-      self.assertTrue(
-          all(x < 10 and x >= 0 for x in output[hashed_sparse].values.eval()))
-      self.assertAllEqual(output[hashed_sparse].indices.eval(),
-                          wire_tensor.indices.eval())
-      self.assertAllEqual(output[hashed_sparse].shape.eval(),
-                          wire_tensor.shape.eval())
+      self.assertEqual(output.values.dtype, tf.int64)
+      self.assertTrue(all(x < 10 and x >= 0 for x in output.values.eval()))
+      self.assertAllEqual(output.indices.eval(), wire_tensor.indices.eval())
+      self.assertAllEqual(output.shape.eval(), wire_tensor.shape.eval())
 
   def testSparseIntColumnWithHashBucket(self):
     """Tests a sparse column with int values."""
@@ -104,34 +91,12 @@ class TransformerTest(tf.test.TestCase):
                                   indices=[[0, 0], [1, 0], [1, 1]],
                                   shape=[2, 2])
     features = {"wire": wire_tensor}
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[hashed_sparse])
-    self.assertEqual(len(output), 1)
-    self.assertIn(hashed_sparse, output)
-    with self.test_session():
-      self.assertEqual(output[hashed_sparse].values.dtype, tf.int64)
-      self.assertTrue(
-          all(x < 10 and x >= 0 for x in output[hashed_sparse].values.eval()))
-      self.assertAllEqual(output[hashed_sparse].indices.eval(),
-                          wire_tensor.indices.eval())
-      self.assertAllEqual(output[hashed_sparse].shape.eval(),
-                          wire_tensor.shape.eval())
-
-  def testSparseColumnWithHashBucketWithDenseInputTensor(self):
-    hashed_sparse = tf.contrib.layers.sparse_column_with_hash_bucket("wire", 10)
-    wire_tensor = tf.constant([["omar", "stringer"], ["marlo", "rick"]])
-    features = {"wire": wire_tensor}
     output = feature_column_ops._Transformer(features).transform(hashed_sparse)
-
     with self.test_session():
-      # While the input is a dense Tensor, the output should be a SparseTensor.
-      self.assertIsInstance(output, tf.SparseTensor)
       self.assertEqual(output.values.dtype, tf.int64)
       self.assertTrue(all(x < 10 and x >= 0 for x in output.values.eval()))
-      self.assertAllEqual(output.indices.eval(),
-                          [[0, 0], [0, 1], [1, 0], [1, 1]])
-      self.assertAllEqual(output.shape.eval(), [2, 2])
+      self.assertAllEqual(output.indices.eval(), wire_tensor.indices.eval())
+      self.assertAllEqual(output.shape.eval(), wire_tensor.shape.eval())
 
   def testEmbeddingColumn(self):
     hashed_sparse = tf.contrib.layers.sparse_column_with_hash_bucket("wire", 10)
@@ -148,12 +113,6 @@ class TransformerTest(tf.test.TestCase):
       self.assertAllEqual(output.indices.eval(), expected.indices.eval())
       self.assertAllEqual(output.shape.eval(), expected.shape.eval())
 
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[hashed_sparse])
-    self.assertEqual(len(output), 1)
-    self.assertIn(hashed_sparse, output)
-
   def testSparseColumnWithKeys(self):
     keys_sparse = tf.contrib.layers.sparse_column_with_keys(
         "wire", ["marlo", "omar", "stringer"])
@@ -161,37 +120,13 @@ class TransformerTest(tf.test.TestCase):
                                   indices=[[0, 0], [1, 0], [1, 1]],
                                   shape=[2, 2])
     features = {"wire": wire_tensor}
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[keys_sparse])
-    self.assertEqual(len(output), 1)
-    self.assertIn(keys_sparse, output)
-    with self.test_session():
-      tf.initialize_all_tables().run()
-      self.assertEqual(output[keys_sparse].values.dtype, tf.int64)
-      self.assertAllEqual(output[keys_sparse].values.eval(), [1, 2, 0])
-      self.assertAllEqual(output[keys_sparse].indices.eval(),
-                          wire_tensor.indices.eval())
-      self.assertAllEqual(output[keys_sparse].shape.eval(),
-                          wire_tensor.shape.eval())
-
-  def testSparseColumnWithKeysWithDenseInputTensor(self):
-    keys_sparse = tf.contrib.layers.sparse_column_with_keys(
-        "wire", ["marlo", "omar", "stringer", "rick"])
-    wire_tensor = tf.constant([["omar", "stringer"], ["marlo", "rick"]])
-
-    features = {"wire": wire_tensor}
     output = feature_column_ops._Transformer(features).transform(keys_sparse)
-
     with self.test_session():
       tf.initialize_all_tables().run()
-      # While the input is a dense Tensor, the output should be a SparseTensor.
-      self.assertIsInstance(output, tf.SparseTensor)
-      self.assertEqual(output.dtype, tf.int64)
-      self.assertAllEqual(output.values.eval(), [1, 2, 0, 3])
-      self.assertAllEqual(output.indices.eval(),
-                          [[0, 0], [0, 1], [1, 0], [1, 1]])
-      self.assertAllEqual(output.shape.eval(), [2, 2])
+      self.assertEqual(output.values.dtype, tf.int64)
+      self.assertAllEqual(output.values.eval(), [1, 2, 0])
+      self.assertAllEqual(output.indices.eval(), wire_tensor.indices.eval())
+      self.assertAllEqual(output.shape.eval(), wire_tensor.shape.eval())
 
   def testSparseColumnWithHashBucket_IsIntegerized(self):
     hashed_sparse = tf.contrib.layers.sparse_column_with_integerized_feature(
@@ -200,37 +135,12 @@ class TransformerTest(tf.test.TestCase):
                                   indices=[[0, 0], [1, 0], [1, 1]],
                                   shape=[2, 2])
     features = {"wire": wire_tensor}
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[hashed_sparse])
-    self.assertEqual(len(output), 1)
-    self.assertIn(hashed_sparse, output)
-    with self.test_session():
-      self.assertEqual(output[hashed_sparse].values.dtype, tf.int32)
-      self.assertTrue(
-          all(x < 10 and x >= 0 for x in output[hashed_sparse].values.eval()))
-      self.assertAllEqual(output[hashed_sparse].indices.eval(),
-                          wire_tensor.indices.eval())
-      self.assertAllEqual(output[hashed_sparse].shape.eval(),
-                          wire_tensor.shape.eval())
-
-  def testSparseColumnWithHashBucketWithDenseInputTensor_IsIntegerized(self):
-    hashed_sparse = tf.contrib.layers.sparse_column_with_integerized_feature(
-        "wire", 10)
-    # wire_tensor = tf.SparseTensor(values=[100, 1, 25],
-    #                               indices=[[0, 0], [1, 0], [1, 1]],
-    #                               shape=[2, 2])
-    wire_tensor = tf.constant([[100, 0], [1, 25]])
-    features = {"wire": wire_tensor}
     output = feature_column_ops._Transformer(features).transform(hashed_sparse)
     with self.test_session():
-      # While the input is a dense Tensor, the output should be a SparseTensor.
-      self.assertIsInstance(output, tf.SparseTensor)
       self.assertEqual(output.values.dtype, tf.int32)
       self.assertTrue(all(x < 10 and x >= 0 for x in output.values.eval()))
-      self.assertAllEqual(output.indices.eval(),
-                          [[0, 0], [0, 1], [1, 0], [1, 1]])
-      self.assertAllEqual(output.shape.eval(), [2, 2])
+      self.assertAllEqual(output.indices.eval(), wire_tensor.indices.eval())
+      self.assertAllEqual(output.shape.eval(), wire_tensor.shape.eval())
 
   def testWeightedSparseColumn(self):
     ids = tf.contrib.layers.sparse_column_with_keys(
@@ -244,26 +154,17 @@ class TransformerTest(tf.test.TestCase):
                                      shape=[2, 2])
     features = {"ids": ids_tensor,
                 "weights": weights_tensor}
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[weighted_ids])
-    self.assertEqual(len(output), 1)
-    self.assertIn(weighted_ids, output)
-    print(output)
+    output = feature_column_ops._Transformer(features).transform(weighted_ids)
     with self.test_session():
       tf.initialize_all_tables().run()
-      self.assertAllEqual(output[weighted_ids][0].shape.eval(),
-                          ids_tensor.shape.eval())
-      self.assertAllEqual(output[weighted_ids][0].indices.eval(),
-                          ids_tensor.indices.eval())
-      self.assertAllEqual(output[weighted_ids][0].values.eval(), [2, 2, 0])
-      self.assertAllEqual(output[weighted_ids][1].shape.eval(),
-                          weights_tensor.shape.eval())
-      self.assertAllEqual(output[weighted_ids][1].indices.eval(),
+      self.assertAllEqual(output[0].shape.eval(), ids_tensor.shape.eval())
+      self.assertAllEqual(output[0].indices.eval(), ids_tensor.indices.eval())
+      self.assertAllEqual(output[0].values.eval(), [2, 2, 0])
+      self.assertAllEqual(output[1].shape.eval(), weights_tensor.shape.eval())
+      self.assertAllEqual(output[1].indices.eval(),
                           weights_tensor.indices.eval())
-      self.assertEqual(output[weighted_ids][1].values.dtype, tf.float32)
-      self.assertAllEqual(output[weighted_ids][1].values.eval(),
-                          weights_tensor.values.eval())
+      self.assertEqual(output[1].values.dtype, tf.float32)
+      self.assertAllEqual(output[1].values.eval(), weights_tensor.values.eval())
 
   def testCrossColumn(self):
     language = tf.contrib.layers.sparse_column_with_hash_bucket(
@@ -280,16 +181,11 @@ class TransformerTest(tf.test.TestCase):
                                    indices=[[0, 0], [1, 0]],
                                    shape=[2, 1])
     }
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[country_language])
-    self.assertEqual(len(output), 1)
-    self.assertIn(country_language, output)
+    output = feature_column_ops._Transformer(features).transform(
+        country_language)
     with self.test_session():
-      self.assertEqual(output[country_language].values.dtype, tf.int64)
-      self.assertTrue(
-          all(x < 15 and x >= 0 for x in output[country_language].values.eval(
-          )))
+      self.assertEqual(output.values.dtype, tf.int64)
+      self.assertTrue(all(x < 15 and x >= 0 for x in output.values.eval()))
 
   def testCrossWithBucketizedColumn(self):
     price_bucket = tf.contrib.layers.bucketized_column(
@@ -305,15 +201,10 @@ class TransformerTest(tf.test.TestCase):
                                    indices=[[0, 0], [0, 1]],
                                    shape=[1, 2])
     }
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[country_price])
-    self.assertEqual(len(output), 1)
-    self.assertIn(country_price, output)
+    output = feature_column_ops._Transformer(features).transform(country_price)
     with self.test_session():
-      self.assertEqual(output[country_price].values.dtype, tf.int64)
-      self.assertTrue(
-          all(x < 15 and x >= 0 for x in output[country_price].values.eval()))
+      self.assertEqual(output.values.dtype, tf.int64)
+      self.assertTrue(all(x < 15 and x >= 0 for x in output.values.eval()))
 
   def testCrossWithMultiDimensionBucketizedColumn(self):
     country = tf.contrib.layers.sparse_column_with_hash_bucket(
@@ -337,14 +228,8 @@ class TransformerTest(tf.test.TestCase):
       weights = column_to_variable[country_price][0]
       grad = tf.squeeze(tf.gradients(output, weights)[0].values)
       with self.test_session():
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         self.assertEqual(len(grad.eval()), 6)
-
-      # Test transform features.
-      output = tf.contrib.layers.transform_features(
-          features=features, feature_columns=[country_price])
-      self.assertEqual(len(output), 1)
-      self.assertIn(country_price, output)
 
   def testCrossWithCrossedColumn(self):
     price_bucket = tf.contrib.layers.bucketized_column(
@@ -366,16 +251,11 @@ class TransformerTest(tf.test.TestCase):
                                 indices=[[0, 0], [0, 1], [0, 2]],
                                 shape=[1, 3])
     }
-    # Test transform features.
-    output = tf.contrib.layers.transform_features(
-        features=features, feature_columns=[wire_country_price])
-    self.assertEqual(len(output), 1)
-    self.assertIn(wire_country_price, output)
+    output = feature_column_ops._Transformer(features).transform(
+        wire_country_price)
     with self.test_session():
-      self.assertEqual(output[wire_country_price].values.dtype, tf.int64)
-      self.assertTrue(
-          all(x < 15 and x >= 0 for x in output[wire_country_price].values.eval(
-          )))
+      self.assertEqual(output.values.dtype, tf.int64)
+      self.assertTrue(all(x < 15 and x >= 0 for x in output.values.eval()))
 
   def testIfFeatureTableContainsTransformationReturnIt(self):
     any_column = tf.contrib.layers.sparse_column_with_hash_bucket("sparse", 10)
@@ -405,7 +285,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
                                                            embedding_column,
                                                            real_valued_column])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       self.assertAllEqual(output.eval().shape, [3, 2 + 4 + 10])
 
@@ -499,7 +379,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     features = {"ids": ids_tensor, "weights": weights_tensor}
     one_hot_column = tf.contrib.layers.one_hot_column(weighted_ids_column)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       with self.assertRaisesRegexp(
           ValueError,
@@ -518,7 +398,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
                                                           [one_hot_sparse])
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       self.assertAllEqual([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]],
                           output.eval())
@@ -536,7 +416,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
                                                           [one_hot_sparse])
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       self.assertAllEqual([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 1, 0]],
                           output.eval())
@@ -552,7 +432,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [one_hot_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 1, 0]],
                           output.eval())
 
@@ -567,7 +447,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [one_hot_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       self.assertAllEqual([3, 10], output.eval().shape)
 
@@ -582,7 +462,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [embeded_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(output.eval().shape, [4, 10])
 
   def testHashedEmbeddingColumnSucceedsForDNN(self):
@@ -598,7 +478,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     weights = tf.get_collection("my_collection")
     grad = tf.gradients(output, weights)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       gradient_values = []
       # Collect the gradient from the different partitions (one in this test)
       for p in range(len(grad)):
@@ -620,7 +500,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
                                                           [embeded_sparse])
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       output_eval = output.eval()
       self.assertAllEqual(output_eval.shape, [2, 10])
       self.assertAllClose(output_eval, np.tile(init_value, [2, 10]))
@@ -667,7 +547,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [embeded_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       self.assertAllEqual(output.eval().shape, [2, 10])
 
@@ -686,7 +566,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [embeded_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(output.eval().shape, [2, 10])
 
   def testSparseColumnFailsForDNN(self):
@@ -698,7 +578,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     with self.test_session():
       with self.assertRaisesRegexp(
           ValueError, "Error creating input layer for column: wire"):
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.contrib.layers.input_from_feature_columns(features, [hashed_sparse])
 
   def testWeightedSparseColumnFailsForDNN(self):
@@ -734,7 +614,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     with self.test_session():
       with self.assertRaisesRegexp(
           ValueError, "Error creating input layer for column: aaa_X_bbb"):
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.contrib.layers.input_from_feature_columns(features, [crossed])
 
   def testDeepColumnsSucceedForDNN(self):
@@ -756,7 +636,7 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     output = tf.contrib.layers.input_from_feature_columns(
         features, [real_valued, bucket, embeded_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       # size of output = 3 (real_valued) + 2 * 4 (bucket) + 10 (embedding) = 21
       self.assertAllEqual(output.eval().shape, [3, 21])
 
@@ -764,44 +644,38 @@ class CreateInputLayersForDNNsTest(tf.test.TestCase):
     hashed_sparse = tf.contrib.layers.sparse_column_with_hash_bucket("wire", 10)
     wire_tensor = tf.SparseTensor(values=["omar", "stringer", "marlo"],
                                   indices=[[0, 0], [1, 0], [1, 1]],
-                                  shape=[3, 2])
+                                  shape=[2, 2])
     features = {"wire": wire_tensor}
     embeded_sparse = tf.contrib.layers.embedding_column(
-        hashed_sparse,
-        1,
-        combiner="sum",
-        initializer=init_ops.ones_initializer())
+        hashed_sparse, 1, combiner="sum", initializer=init_ops.ones_initializer)
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [embeded_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       # score: (number of values)
-      self.assertAllEqual(output.eval(), [[1.], [2.], [0.]])
+      self.assertAllEqual(output.eval(), [[1.], [2.]])
 
   def testEmbeddingColumnWithWeightedSparseColumnForDNN(self):
     ids = tf.contrib.layers.sparse_column_with_keys(
         "ids", ["marlo", "omar", "stringer"])
     ids_tensor = tf.SparseTensor(values=["stringer", "stringer", "marlo"],
                                  indices=[[0, 0], [1, 0], [1, 1]],
-                                 shape=[3, 2])
+                                 shape=[2, 2])
     weighted_ids = tf.contrib.layers.weighted_sparse_column(ids, "weights")
     weights_tensor = tf.SparseTensor(values=[10.0, 20.0, 30.0],
                                      indices=[[0, 0], [1, 0], [1, 1]],
-                                     shape=[3, 2])
+                                     shape=[2, 2])
     features = {"ids": ids_tensor,
                 "weights": weights_tensor}
     embeded_sparse = tf.contrib.layers.embedding_column(
-        weighted_ids,
-        1,
-        combiner="sum",
-        initializer=init_ops.ones_initializer())
+        weighted_ids, 1, combiner="sum", initializer=init_ops.ones_initializer)
     output = tf.contrib.layers.input_from_feature_columns(features,
                                                           [embeded_sparse])
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       # score: (sum of weights)
-      self.assertAllEqual(output.eval(), [[10.], [50.], [0.]])
+      self.assertAllEqual(output.eval(), [[10.], [50.]])
 
   def testInputLayerWithCollectionsForDNN(self):
     real_valued = tf.contrib.layers.real_valued_column("price")
@@ -984,7 +858,7 @@ class SequenceInputFromFeatureColumnTest(tf.test.TestCase):
         columns_to_tensors, [one_hot_column])
 
     with self.test_session() as sess:
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       model_input = sess.run(model_input_tensor)
 
@@ -1017,7 +891,7 @@ class SequenceInputFromFeatureColumnTest(tf.test.TestCase):
         columns_to_tensors, [one_hot_column])
 
     with self.test_session() as sess:
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       model_input = sess.run(model_input_tensor)
 
@@ -1047,7 +921,7 @@ class SequenceInputFromFeatureColumnTest(tf.test.TestCase):
         columns_to_tensors, [embedded_column])
 
     with self.test_session() as sess:
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       model_input = sess.run(model_input_tensor)
 
@@ -1077,7 +951,7 @@ class SequenceInputFromFeatureColumnTest(tf.test.TestCase):
     embedding_weights = tf.get_collection("my_collection")
     gradient_tensor = tf.gradients(model_input_tensor, embedding_weights)
     with self.test_session() as sess:
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       model_input, gradients = sess.run([model_input_tensor, gradient_tensor])
 
@@ -1086,7 +960,7 @@ class SequenceInputFromFeatureColumnTest(tf.test.TestCase):
 
     # `ids_tensor` consists of 7 instances of <empty>, 3 occurences of "b",
     # 2 occurences of "c" and 1 instance of "a".
-    expected_gradient_values = sorted([0., 3., 2., 1.] * embedding_dimension)
+    expected_gradient_values = sorted([7., 3., 2., 1.] * embedding_dimension)
     actual_gradient_values = np.sort(gradients[0].values, axis=None)
     self.assertAllClose(expected_gradient_values, actual_gradient_values)
 
@@ -1142,7 +1016,7 @@ class SequenceInputFromFeatureColumnTest(tf.test.TestCase):
     self.assertEqual(tf.float32, model_input_tensor.dtype)
 
     with self.test_session() as sess:
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       model_input = sess.run(model_input_tensor)
 
@@ -1164,7 +1038,7 @@ class WeightedSumTest(tf.test.TestCase):
     logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
         features, [hashed_sparse], num_outputs=5)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(logits.eval().shape, [2, 5])
 
   def testSparseIntColumn(self):
@@ -1174,16 +1048,6 @@ class WeightedSumTest(tf.test.TestCase):
     wire_tensor = tf.SparseTensor(values=[101, 201, 301],
                                   indices=[[0, 0], [1, 0], [1, 1]],
                                   shape=[2, 2])
-    features = {"wire": wire_tensor}
-    logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
-        features, [hashed_sparse], num_outputs=5)
-    with self.test_session():
-      tf.global_variables_initializer().run()
-      self.assertAllEqual(logits.eval().shape, [2, 5])
-
-  def testSparseColumnWithDenseInputTensor(self):
-    hashed_sparse = tf.contrib.layers.sparse_column_with_hash_bucket("wire", 10)
-    wire_tensor = tf.constant([["omar", "stringer"], ["marlo", "rick"]])
     features = {"wire": wire_tensor}
     logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
         features, [hashed_sparse], num_outputs=5)
@@ -1206,23 +1070,6 @@ class WeightedSumTest(tf.test.TestCase):
     logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
         features, [weighted_ids], num_outputs=5)
     with self.test_session():
-      tf.global_variables_initializer().run()
-      tf.initialize_all_tables().run()
-      self.assertAllEqual(logits.eval().shape, [2, 5])
-
-  def testWeightedSparseColumnWithDenseInputTensor(self):
-    ids = tf.contrib.layers.sparse_column_with_keys(
-        "ids", ["marlo", "omar", "stringer", "rick"])
-    ids_tensor = tf.constant([["omar", "stringer"], ["marlo", "rick"]])
-    weighted_ids = tf.contrib.layers.weighted_sparse_column(ids, "weights")
-    weights_tensor = tf.constant([[10.0, 20.0], [30.0, 40.0]])
-
-    features = {"ids": ids_tensor,
-                "weights": weights_tensor}
-    logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
-        features, [weighted_ids], num_outputs=5)
-
-    with self.test_session():
       tf.initialize_all_variables().run()
       tf.initialize_all_tables().run()
       self.assertAllEqual(logits.eval().shape, [2, 5])
@@ -1241,7 +1088,7 @@ class WeightedSumTest(tf.test.TestCase):
     logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
         features, [crossed], num_outputs=5)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(logits.eval().shape, [2, 5])
 
   def testEmbeddingColumn(self):
@@ -1254,7 +1101,7 @@ class WeightedSumTest(tf.test.TestCase):
     with self.test_session():
       with self.assertRaisesRegexp(
           ValueError, "Error creating weighted sum for column: wire_embedding"):
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.contrib.layers.weighted_sum_from_feature_columns(features,
                                                             [embeded_sparse],
                                                             num_outputs=5)
@@ -1265,7 +1112,7 @@ class WeightedSumTest(tf.test.TestCase):
     logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
         features, [real_valued], num_outputs=5)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(logits.eval().shape, [3, 5])
 
   def testBucketizedColumnWithMultiDimensions(self):
@@ -1276,7 +1123,7 @@ class WeightedSumTest(tf.test.TestCase):
     logits, _, _ = tf.contrib.layers.weighted_sum_from_feature_columns(
         features, [bucket], num_outputs=5)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(logits.eval().shape, [3, 5])
 
   def testAllWideColumns(self):
@@ -1297,7 +1144,7 @@ class WeightedSumTest(tf.test.TestCase):
         features, [real_valued, bucket, hashed_sparse, crossed],
         num_outputs=5)
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       self.assertAllEqual(output.eval().shape, [3, 5])
 
   def testPredictions(self):
@@ -1317,7 +1164,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [age, language],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         self.assertAllClose(output.eval(), [[0.], [0.]])
@@ -1355,7 +1202,7 @@ class WeightedSumTest(tf.test.TestCase):
       # Assert that only a single weight is created.
       self.assertEqual(len(variables), 1)
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         self.assertAllClose(output.eval(), [[0.], [0.]])
@@ -1417,7 +1264,7 @@ class WeightedSumTest(tf.test.TestCase):
           tf.contrib.layers.weighted_sum_from_feature_columns(
               features, [weighted_language], num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         self.assertAllClose(output.eval(), [[0.], [0.]])
@@ -1445,7 +1292,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [language],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         # score: 0.1 + language_weight['hindi'] + language_weight['english']
@@ -1468,7 +1315,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [movies],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[movies][0]
@@ -1499,7 +1346,7 @@ class WeightedSumTest(tf.test.TestCase):
               features, [country_language],
               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[country_language][0]
@@ -1522,7 +1369,7 @@ class WeightedSumTest(tf.test.TestCase):
               features, [language_language],
               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[language_language][0]
@@ -1552,7 +1399,7 @@ class WeightedSumTest(tf.test.TestCase):
               features, [country_language],
               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[country_language][0]
@@ -1589,7 +1436,7 @@ class WeightedSumTest(tf.test.TestCase):
                 num_outputs=1,
                 scope=scope))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         self.assertEqual(2, len(column_to_variable[country]))
@@ -1621,7 +1468,7 @@ class WeightedSumTest(tf.test.TestCase):
               features, [country, age, incomes],
               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         incomes_weights = column_to_variable[incomes][0]
@@ -1645,7 +1492,7 @@ class WeightedSumTest(tf.test.TestCase):
               features, [country, age, incomes],
               num_outputs=5))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         incomes_weights = column_to_variable[incomes][0]
@@ -1667,7 +1514,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [bucket],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         sess.run(column_to_variable[bucket][0].assign([[0.1], [0.2], [0.3], [0.4
@@ -1691,7 +1538,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [bucket, country],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         # dimension = 2, bucket_size = 4, num_classes = 1
@@ -1716,7 +1563,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [bucket, country],
                                                               num_outputs=5))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         # dimension = 2, bucket_size = 4, num_classes = 5
@@ -1751,7 +1598,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [country_price],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[country_price][0]
@@ -1788,7 +1635,7 @@ class WeightedSumTest(tf.test.TestCase):
               features, [country_language_price],
               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[country_language_price][0]
@@ -1809,43 +1656,11 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [product],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
-        tf.initialize_all_tables().run()
-        product_weights = column_to_variable[product][0]
-        sess.run(product_weights.assign([[0.1], [0.2], [0.3], [0.4], [0.5]]))
-        self.assertAllClose(output.eval(), [[0.1], [0.5], [0.3]])
-
-  def testIntegerizedColumnWithDenseInputTensor(self):
-    product = tf.contrib.layers.sparse_column_with_integerized_feature(
-        "product", bucket_size=5)
-    with tf.Graph().as_default():
-      features = {"product": tf.constant([[0], [4], [2]])}
-      output, column_to_variable, _ = (
-          tf.contrib.layers.weighted_sum_from_feature_columns(features,
-                                                              [product],
-                                                              num_outputs=1))
-      with self.test_session() as sess:
         tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
         product_weights = column_to_variable[product][0]
         sess.run(product_weights.assign([[0.1], [0.2], [0.3], [0.4], [0.5]]))
         self.assertAllClose(output.eval(), [[0.1], [0.5], [0.3]])
-
-  def testIntegerizedColumnWithDenseInputTensor2(self):
-    product = tf.contrib.layers.sparse_column_with_integerized_feature(
-        "product", bucket_size=5)
-    with tf.Graph().as_default():
-      features = {"product": tf.constant([[0, 4], [2, 3]])}
-      output, column_to_variable, _ = (
-          tf.contrib.layers.weighted_sum_from_feature_columns(features,
-                                                              [product],
-                                                              num_outputs=1))
-      with self.test_session() as sess:
-        tf.initialize_all_variables().run()
-        tf.initialize_all_tables().run()
-        product_weights = column_to_variable[product][0]
-        sess.run(product_weights.assign([[0.1], [0.2], [0.3], [0.4], [0.5]]))
-        self.assertAllClose(output.eval(), [[0.6], [0.7]])
 
   def testIntegerizedColumnWithInvalidId(self):
     product = tf.contrib.layers.sparse_column_with_integerized_feature(
@@ -1859,7 +1674,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [product],
                                                               num_outputs=1))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
         product_weights = column_to_variable[product][0]
         sess.run(product_weights.assign([[0.1], [0.2], [0.3], [0.4], [0.5]]))
@@ -1872,7 +1687,7 @@ class WeightedSumTest(tf.test.TestCase):
           features, [tf.contrib.layers.real_valued_column("age")],
           num_outputs=3)
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
         sess.run(bias.assign([0.1, 0.2, 0.3]))
         self.assertAllClose(output.eval(), [[0.1, 0.2, 0.3], [0.1, 0.2, 0.3],
@@ -1887,7 +1702,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [column],
                                                               num_outputs=3))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
         weights = column_to_variable[column][0]
         self.assertEqual(weights.get_shape(), (1, 3))
@@ -1911,7 +1726,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [column],
                                                               num_outputs=3))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
         weights = column_to_variable[column][0]
         self.assertEqual(weights.get_shape(), (5, 3))
@@ -1933,7 +1748,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [column],
                                                               num_outputs=3))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[column][0]
@@ -1966,7 +1781,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [column],
                                                               num_outputs=3))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[column][0]
@@ -1992,7 +1807,7 @@ class WeightedSumTest(tf.test.TestCase):
                                                               [column],
                                                               num_outputs=3))
       with self.test_session() as sess:
-        tf.global_variables_initializer().run()
+        tf.initialize_all_variables().run()
         tf.initialize_all_tables().run()
 
         weights = column_to_variable[column][0]
@@ -2054,79 +1869,6 @@ class ParseExampleTest(tf.test.TestCase):
       self.assertAllEqual(output[wire_cast].indices.eval(), [[0, 0], [0, 1]])
       self.assertAllEqual(output[wire_cast].values.eval(), [2, 0])
 
-
-  def testParseSequenceExample(self):
-    location_keys = ["east_side", "west_side", "nyc"]
-    embedding_dimension = 10
-
-
-    location = tf.contrib.layers.sparse_column_with_keys(
-        "location", keys=location_keys)
-    location_onehot = tf.contrib.layers.one_hot_column(location)
-    wire_cast = tf.contrib.layers.sparse_column_with_keys(
-        "wire_cast", ["marlo", "omar", "stringer"])
-    wire_cast_embedded = tf.contrib.layers.embedding_column(
-        wire_cast, dimension=embedding_dimension)
-    measurements = tf.contrib.layers.real_valued_column("measurements", dimension=2)
-
-    context_feature_columns = [location_onehot]
-    sequence_feature_columns = [wire_cast_embedded, measurements]
-
-    sequence_example = tf.train.SequenceExample(
-        context=tf.train.Features(feature={
-            "location": tf.train.Feature(
-                bytes_list=tf.train.BytesList(
-                    value=[b"west_side"])),
-        }),
-        feature_lists=tf.train.FeatureLists(feature_list={
-            "wire_cast": tf.train.FeatureList(feature=[
-                tf.train.Feature(bytes_list=tf.train.BytesList(
-                    value=[b"marlo", b"stringer"])),
-                tf.train.Feature(bytes_list=tf.train.BytesList(
-                    value=[b"omar", b"stringer", b"marlo"])),
-                tf.train.Feature(bytes_list=tf.train.BytesList(
-                    value=[b"marlo"])),
-
-            ]),
-            "measurements": tf.train.FeatureList(feature=[
-                tf.train.Feature(float_list=tf.train.FloatList(
-                    value=[0.2, 0.3])),
-                tf.train.Feature(float_list=tf.train.FloatList(
-                    value=[0.1, 0.8])),
-                tf.train.Feature(float_list=tf.train.FloatList(
-                    value=[0.5, 0.0])),
-            ])
-        }))
-
-
-    ctx, seq = tf.contrib.layers.parse_feature_columns_from_sequence_examples(
-         serialized=sequence_example.SerializeToString(),
-         context_feature_columns=context_feature_columns,
-         sequence_feature_columns=sequence_feature_columns)
-
-    self.assertIn("location", ctx)
-    self.assertIsInstance(ctx["location"], tf.SparseTensor)
-    self.assertIn("wire_cast", seq)
-    self.assertIsInstance(seq["wire_cast"], tf.SparseTensor)
-    self.assertIn("measurements", seq)
-    self.assertIsInstance(seq["measurements"], tf.Tensor)
-
-    with self.test_session() as sess:
-      location_val, wire_cast_val, measurement_val = sess.run([
-          ctx["location"], seq["wire_cast"], seq["measurements"]])
-
-    self.assertAllEqual(location_val.indices, np.array([[0]]))
-    self.assertAllEqual(location_val.values, np.array([b"west_side"]))
-    self.assertAllEqual(location_val.shape, np.array([1]))
-
-    self.assertAllEqual(wire_cast_val.indices, np.array(
-        [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2], [2, 0]]))
-    self.assertAllEqual(wire_cast_val.values, np.array(
-        [b"marlo", b"stringer", b"omar", b"stringer", b"marlo", b"marlo"]))
-    self.assertAllEqual(wire_cast_val.shape, np.array([3, 3]))
-
-    self.assertAllClose(
-        measurement_val, np.array([[0.2, 0.3], [0.1, 0.8], [0.5, 0.0]]))
 
 class InferRealValuedColumnTest(tf.test.TestCase):
 

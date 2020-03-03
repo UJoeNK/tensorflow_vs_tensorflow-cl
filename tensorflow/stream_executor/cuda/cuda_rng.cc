@@ -13,7 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "cuda.h"
+
 #include "tensorflow/stream_executor/cuda/cuda_rng.h"
+
+#include <dlfcn.h>
 
 #include "tensorflow/stream_executor/cuda/cuda_activation.h"
 #include "tensorflow/stream_executor/cuda/cuda_gpu_executor.h"

@@ -116,14 +116,6 @@ struct StridedSliceAssign {
   }
 };
 
-template <typename Device, typename T>
-struct StridedSliceAssignScalar {
-  void operator()(const Device& d, typename TTypes<T, 1>::Tensor output,
-                  typename TTypes<T, 1>::ConstTensor input) {
-    output.device(d) = input;
-  }
-};
-
 }  // namespace functor
 }  // namespace tensorflow
 

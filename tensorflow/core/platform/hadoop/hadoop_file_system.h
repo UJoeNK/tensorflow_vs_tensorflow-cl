@@ -45,7 +45,7 @@ class HadoopFileSystem : public FileSystem {
       const string& fname,
       std::unique_ptr<ReadOnlyMemoryRegion>* result) override;
 
-  Status FileExists(const string& fname) override;
+  bool FileExists(const string& fname) override;
 
   Status GetChildren(const string& dir, std::vector<string>* result) override;
 

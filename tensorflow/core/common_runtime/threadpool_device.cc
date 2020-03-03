@@ -31,10 +31,10 @@ namespace tensorflow {
 
 ThreadPoolDevice::ThreadPoolDevice(const SessionOptions& options,
                                    const string& name, Bytes memory_limit,
-                                   const DeviceLocality& locality,
+                                   BusAdjacency bus_adjacency,
                                    Allocator* allocator)
     : LocalDevice(options, Device::BuildDeviceAttributes(
-                               name, DEVICE_CPU, memory_limit, locality),
+                               name, DEVICE_CPU, memory_limit, bus_adjacency),
                   allocator),
       allocator_(allocator) {}
 

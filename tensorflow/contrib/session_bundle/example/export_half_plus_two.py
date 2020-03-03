@@ -34,9 +34,7 @@ from tensorflow.contrib.session_bundle import exporter
 
 tf.app.flags.DEFINE_string("export_dir", "/tmp/half_plus_two",
                            "Directory where to export inference model.")
-tf.flags.DEFINE_bool("use_checkpoint_v2", False,
-                     "If true, write v2 checkpoint files.")
-FLAGS = tf.flags.FLAGS
+FLAGS = tf.app.flags.FLAGS
 
 
 def Export():
@@ -60,14 +58,7 @@ def Export():
     y = tf.add(tf.mul(a, x), b, name="y")
 
     # Setup a standard Saver for our variables.
-    save = tf.train.Saver(
-        {
-            "a": a,
-            "b": b
-        },
-        sharded=True,
-        write_version=tf.train.SaverDef.V2 if FLAGS.use_checkpoint_v2 else
-        tf.train.SaverDef.V1)
+    save = tf.train.Saver({"a": a, "b": b}, sharded=True)
 
     # asset_path contains the base directory of assets used in training (e.g.
     # vocabulary files).
@@ -125,7 +116,7 @@ def Export():
         print("copying asset file: %s" % filepath)
 
     # Run an export.
-    tf.global_variables_initializer().run()
+    tf.initialize_all_variables().run()
     export = exporter.Exporter(save)
     export.init(
         sess.graph.as_graph_def(),

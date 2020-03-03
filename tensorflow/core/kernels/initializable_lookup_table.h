@@ -41,12 +41,11 @@ class InitializableLookupTable : public LookupInterface {
   //   fails.
   // - In addition, other implementations may provide another non-OK status
   //   specific to their failure modes.
-  Status Find(OpKernelContext* ctx, const Tensor& keys, Tensor* values,
+  Status Find(const Tensor& keys, Tensor* values,
               const Tensor& default_value) final;
 
   // Returns errors::Unimplemented.
-  Status Insert(OpKernelContext* ctx, const Tensor& keys,
-                const Tensor& values) final {
+  Status Insert(const Tensor& keys, const Tensor& values) final {
     return errors::Unimplemented(
         "Insert not supported by InitializableLookupTable implementations");
   }
@@ -57,14 +56,11 @@ class InitializableLookupTable : public LookupInterface {
         "implementations");
   }
 
-  Status ImportValues(OpKernelContext* ctx, const Tensor& keys,
-                      const Tensor& values) final {
+  Status ImportValues(const Tensor& keys, const Tensor& values) final {
     return errors::Unimplemented(
         "ImportValues not supported by InitializableLookupTable "
         "implementations");
   }
-
-  TensorShape key_shape() const final { return TensorShape(); }
 
   TensorShape value_shape() const final { return TensorShape(); }
 

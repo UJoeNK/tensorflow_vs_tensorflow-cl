@@ -126,8 +126,6 @@ class Options(object):
 
     # Where to write out summaries.
     self.save_path = FLAGS.save_path
-    if not os.path.exists(self.save_path):
-      os.makedirs(self.save_path)
 
     # Eval options.
 
@@ -298,7 +296,7 @@ class Word2Vec(object):
     self._nearby_idx = nearby_idx
 
     # Properly initialize all variables.
-    tf.global_variables_initializer().run()
+    tf.initialize_all_variables().run()
 
     self.saver = tf.train.Saver()
 

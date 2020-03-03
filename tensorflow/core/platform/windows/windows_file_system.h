@@ -16,7 +16,6 @@ limitations under the License.
 #ifndef TENSORFLOW_CORE_PLATFORM_WINDOWS_WINDOWS_FILE_SYSTEM_H_
 #define TENSORFLOW_CORE_PLATFORM_WINDOWS_WINDOWS_FILE_SYSTEM_H_
 
-#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/file_system.h"
 
 #ifdef PLATFORM_WINDOWS
@@ -44,12 +43,9 @@ class WindowsFileSystem : public FileSystem {
       const string& fname,
       std::unique_ptr<ReadOnlyMemoryRegion>* result) override;
 
-  Status FileExists(const string& fname) override;
+  bool FileExists(const string& fname) override;
 
   Status GetChildren(const string& dir, std::vector<string>* result) override;
-
-  Status GetMatchingPaths(const string& pattern,
-                          std::vector<string>* result) override;
 
   Status Stat(const string& fname, FileStatistics* stat) override;
 
@@ -68,14 +64,7 @@ class WindowsFileSystem : public FileSystem {
   }
 };
 
-class LocalWinFileSystem : public WindowsFileSystem {
-public:
-    string TranslateName(const string& name) const override {
-      StringPiece scheme, host, path;
-      io::ParseURI(name, &scheme, &host, &path);
-      return path.ToString();
-    }
-};
+Status IOError(const string& context, int err_number);
 
 }  // namespace tensorflow
 

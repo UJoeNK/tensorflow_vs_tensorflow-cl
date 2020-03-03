@@ -53,12 +53,12 @@ class DummyWorkerCache : public WorkerCacheInterface {
   WorkerInterface* CreateWorker(const string& target) override {
     return nullptr;
   }
-  bool GetDeviceLocalityNonBlocking(const string& device,
-                                    DeviceLocality* locality) override {
+  bool GetDeviceBusNonBlocking(const string& device,
+                               BusAdjacency* ba) override {
     return false;
   }
-  void GetDeviceLocalityAsync(const string& device, DeviceLocality* locality,
-                              StatusCallback done) override {}
+  void GetDeviceBusAsync(const string& device, BusAdjacency* ba,
+                         StatusCallback done) override {}
 };
 }  // namespace
 

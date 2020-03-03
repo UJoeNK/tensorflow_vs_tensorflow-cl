@@ -50,10 +50,11 @@ limitations under the License.
 #include "tensorflow/core/platform/thread_annotations.h"
 #include "tensorflow/core/platform/types.h"
 
+#include <iostream>
+
 namespace Eigen {
 struct ThreadPoolDevice;
 struct GpuDevice;
-struct SyclDevice;
 }  // end namespace Eigen
 
 namespace tensorflow {
@@ -132,7 +133,7 @@ class OpKernel {
   // We allow legacy scalars within Google up until GraphDef version 6.
   // TODO(irving): Remove when we can drop support for GraphDef version 5.
   bool allow_legacy_scalars() const {
-#if defined(PLATFORM_GOOGLE) || defined(PLATFORM_GOOGLE_ANDROID)
+#if defined(PLATFORM_GOOGLE)
     return graph_def_version_ < 6;
 #else
     return false;
@@ -892,11 +893,6 @@ class OpKernelContext {
   const Eigen::GpuDevice& eigen_gpu_device() const {
     return params_->eigen_gpu_device->device();
   }
-#ifdef TENSORFLOW_USE_SYCL
-  const Eigen::SyclDevice& eigen_sycl_device() const {
-    return *device()->eigen_sycl_device();
-  }
-#endif
   template <typename EigenDeviceType>
   const EigenDeviceType& eigen_device() const;
 
@@ -1125,6 +1121,7 @@ class OpKernelRegistrar {
                     Factory factory) {
     // Perform the check in the header to allow compile-time optimization
     // to a no-op, allowing the linker to remove the kernel symbols.
+    // std::cout << "core/framework/op_kernel.h OpKernelRegistrar::OpKernelRegistrar() kernel_class_name=" << kernel_class_name << std::endl;
     if (kernel_def != nullptr) {
       InitInternal(kernel_def, kernel_class_name, factory);
     }

@@ -15,9 +15,9 @@ limitations under the License.
 
 #define EIGEN_USE_THREADS
 
-#if GOOGLE_CUDA
-#define EIGEN_USE_GPU
-#endif  // GOOGLE_CUDA
+// #if GOOGLE_CUDA
+// #define EIGEN_USE_GPU
+// #endif  // GOOGLE_CUDA
 
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/kernels/bounds_check.h"
@@ -40,11 +40,6 @@ class SelectOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->input("condition", &cond));
     OP_REQUIRES_OK(ctx, ctx->input("t", &then));
     OP_REQUIRES_OK(ctx, ctx->input("e", &else_));
-
-    if (TensorShapeUtils::IsScalar(cond->shape())){
-        ComputeScalar(ctx, cond, then, else_);
-        return;
-    }
 
     bool broadcasting = (TensorShapeUtils::IsVector(cond->shape()) &&
                          !TensorShapeUtils::IsVector(then->shape()));
@@ -113,25 +108,6 @@ class SelectOp : public OpKernel {
     }
   }
 
-  void ComputeScalar(OpKernelContext* ctx, const Tensor* cond,
-                          const Tensor* then, const Tensor* else_) {
-    OP_REQUIRES(
-        ctx, then->shape().IsSameSize(else_->shape()),
-        errors::InvalidArgument(
-            "'then' and 'else' must have the same size.  but received: ",
-            then->shape().DebugString(), " vs. ",
-            else_->shape().DebugString()));
-
-    Tensor* output = nullptr;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, then->shape(), &output));
-
-    if (output->NumElements() > 0) {
-      functor::SelectScalarFunctor<Device, T> func;
-      TTypes<bool>::ConstScalar cond_scalar = cond->scalar<bool>();
-      func(ctx->eigen_device<Device>(), output->flat<T>(), cond_scalar,
-           then->flat<T>(), else_->flat<T>());
-    }
-  }
  private:
   TF_DISALLOW_COPY_AND_ASSIGN(SelectOp);
 };
@@ -143,7 +119,7 @@ class SelectOp : public OpKernel {
 
 TF_CALL_ALL_TYPES(REGISTER_SELECT);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 // Registration of the GPU implementations.
 #define REGISTER_SELECT_GPU(type)                                  \
@@ -151,17 +127,17 @@ TF_CALL_ALL_TYPES(REGISTER_SELECT);
       Name("Select").Device(DEVICE_GPU).TypeConstraint<type>("T"), \
       SelectOp<GPUDevice, type>);
 
-REGISTER_SELECT_GPU(Eigen::half);
+// REGISTER_SELECT_GPU(Eigen::half);
 REGISTER_SELECT_GPU(float);
-REGISTER_SELECT_GPU(double);
+// REGISTER_SELECT_GPU(double);
 REGISTER_SELECT_GPU(int32);
-REGISTER_SELECT_GPU(int64);
-REGISTER_SELECT_GPU(complex64);
-REGISTER_SELECT_GPU(complex128);
+// REGISTER_SELECT_GPU(int64);
+// REGISTER_SELECT_GPU(complex64);
+// REGISTER_SELECT_GPU(complex128);
 
 #undef REGISTER_SELECT_GPU
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 namespace functor {
 
@@ -173,17 +149,6 @@ struct SelectFunctor<CPUDevice, T> {
                   typename TTypes<T>::ConstFlat then_flat,
                   typename TTypes<T>::ConstFlat else_flat) {
     Assign(d, out, cond_flat.select(then_flat, else_flat));
-  }
-};
-
-// CPU Specializations of Select functors with scalar
-template <typename T>
-struct SelectScalarFunctor<CPUDevice, T> {
-  void operator()(const CPUDevice& d, typename TTypes<T>::Flat out,
-                  TTypes<bool>::ConstScalar cond,
-                  typename TTypes<T>::ConstFlat then_flat,
-                  typename TTypes<T>::ConstFlat else_flat) {
-    out.device(d) = cond() ? then_flat : else_flat;
   }
 };
 

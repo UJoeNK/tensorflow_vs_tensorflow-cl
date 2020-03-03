@@ -17,9 +17,9 @@ limitations under the License.
 
 #define EIGEN_USE_THREADS
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 #include "tensorflow/core/kernels/slice_op.h"
 
@@ -136,7 +136,7 @@ class SliceOp : public OpKernel {
       return;
     }
 
-    if (slice_dim0 && IsDim0SliceAligned<T>(input.shape(), begin[0], size[0])) {
+    if (slice_dim0 && IsInnerDimsSizeAligned<T>(input.shape())) {
       VLOG(1) << "Slice dim 0: " << input.shape().DebugString();
       CHECK_GE(input.dims(), 1);  // Otherwise, is_identity should be true.
       context->set_output(0, input.Slice(begin[0], begin[0] + size[0]));
@@ -241,7 +241,7 @@ REGISTER_SLICE(bfloat16);
 
 #undef REGISTER_SLICE
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
 #define DECLARE_GPU_SPEC(T, NDIM)                                  \
@@ -262,8 +262,8 @@ namespace functor {
   DECLARE_GPU_SPEC(T, 6);
 
 TF_CALL_GPU_NUMBER_TYPES(DECLARE_FOR_N);
-TF_CALL_complex64(DECLARE_FOR_N);
-TF_CALL_complex128(DECLARE_FOR_N);
+// TF_CALL_complex64(DECLARE_FOR_N);
+// TF_CALL_complex128(DECLARE_FOR_N);
 DECLARE_FOR_N(int32);
 
 #undef DECLARE_FOR_N
@@ -280,8 +280,8 @@ DECLARE_FOR_N(int32);
                           SliceOp<GPUDevice, type>)
 
 TF_CALL_GPU_NUMBER_TYPES(REGISTER_GPU);
-TF_CALL_complex64(REGISTER_GPU);
-TF_CALL_complex128(REGISTER_GPU);
+// TF_CALL_complex64(REGISTER_GPU);
+// TF_CALL_complex128(REGISTER_GPU);
 
 // A special GPU kernel for int32.
 // TODO(b/25387198): Also enable int32 in device memory. This kernel
@@ -298,6 +298,6 @@ REGISTER_KERNEL_BUILDER(Name("Slice")
 
 #undef REGISTER_GPU
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 }  // namespace tensorflow

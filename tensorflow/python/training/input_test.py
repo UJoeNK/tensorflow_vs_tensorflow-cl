@@ -44,8 +44,8 @@ class MatchFilenamesOnceTest(tf.test.TestCase):
       question = tf.train.match_filenames_once(
           os.path.join(self.get_temp_dir(), "match_filenames.?"))
       one = tf.train.match_filenames_once(additional[1])
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       self.assertItemsEqual(map(tf.compat.as_bytes, filenames), star.eval())
       self.assertItemsEqual(map(tf.compat.as_bytes, additional),
                             question.eval())
@@ -58,7 +58,7 @@ class LimitEpochsTest(tf.test.TestCase):
     with self.test_session():
       seven = tf.constant(7)
       seven_forever = tf.train.limit_epochs(seven)
-      tf.local_variables_initializer().run()
+      tf.initialize_local_variables().run()
       for _ in range(100):
         self.assertEqual(7, seven_forever.eval())
 
@@ -66,8 +66,8 @@ class LimitEpochsTest(tf.test.TestCase):
     with self.test_session():
       love_me = tf.constant("Love Me")
       love_me_two_times = tf.train.limit_epochs(love_me, num_epochs=2)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       self.assertEqual(b"Love Me", love_me_two_times.eval())
       self.assertEqual(b"Love Me", love_me_two_times.eval())
       with self.assertRaises(tf.errors.OutOfRangeError):
@@ -86,8 +86,8 @@ class InputProducerTest(tf.test.TestCase):
           input_tensor, num_epochs=num_epochs, shuffle=False)
       dequeue_many = queue.dequeue_many(len(input_tensor) * num_epochs)
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
@@ -111,8 +111,8 @@ class InputProducerTest(tf.test.TestCase):
           input_tensor, element_shape=[4], num_epochs=num_epochs, shuffle=False)
       dequeue_many = queue.dequeue_many(len(input_value) * num_epochs)
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
@@ -140,8 +140,8 @@ class StringInputProducerTest(tf.test.TestCase):
           strings, num_epochs=num_epochs, shuffle=False)
       dequeue_many = queue.dequeue_many(len(strings) * num_epochs)
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
@@ -162,8 +162,8 @@ class StringInputProducerTest(tf.test.TestCase):
           strings, num_epochs=num_epochs, shuffle=True, seed=271828)
       dequeue_many = queue.dequeue_many(len(strings))
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Validate that we only shuffle the strings within an epoch and
@@ -207,8 +207,8 @@ class StringInputProducerTest(tf.test.TestCase):
       coord = tf.train.Coordinator()
       queue = tf.train.string_input_producer(tf.constant([], dtype=tf.string))
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners(coord=coord)
       with self.assertRaises(tf.errors.OutOfRangeError):
         dequeue.eval()
@@ -255,8 +255,8 @@ class RangeInputProducerTest(tf.test.TestCase):
           range_size, num_epochs=num_epochs, shuffle=False)
       dequeue_many = queue.dequeue_many(range_size * num_epochs)
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
@@ -277,8 +277,8 @@ class RangeInputProducerTest(tf.test.TestCase):
           range_size, num_epochs=num_epochs, shuffle=True, seed=314159)
       dequeue_many = queue.dequeue_many(range_size)
       dequeue = queue.dequeue()
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Validate that we only shuffle the integers within an epoch and
@@ -327,8 +327,8 @@ class SliceInputProducerTest(tf.test.TestCase):
       source_ints = [2, 3, 5, 7]
       slices = tf.train.slice_input_producer(
           [source_strings, source_ints], num_epochs=num_epochs, shuffle=False)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # No randomness, so just see repeated copies of the input.
@@ -352,8 +352,8 @@ class SliceInputProducerTest(tf.test.TestCase):
       slices = tf.train.slice_input_producer(
           [source_strings, source_ints], num_epochs=num_epochs, shuffle=True,
           seed=161803)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Validate that we only shuffle the integers within an epoch and
@@ -424,8 +424,8 @@ class BatchTest(tf.test.TestCase):
       examples = tf.Variable(zero64)
       counter = examples.count_up_to(num_batches * batch_size)
       sparse_counter = tf.SparseTensor(
-          indices=tf.reshape(tf.stack([zero64, zero64 + 1]), [2, 1]),
-          values=tf.cast(tf.stack([counter, -counter]), tf.float32),
+          indices=tf.reshape(tf.pack([zero64, zero64 + 1]), [2, 1]),
+          values=tf.cast(tf.pack([counter, -counter]), tf.float32),
           shape=[2])
       if use_dict:
         batched = tf.train.batch(
@@ -436,8 +436,8 @@ class BatchTest(tf.test.TestCase):
         batched = tf.train.batch(
             [counter, sparse_counter, "string"], batch_size=batch_size)
         batched_fetch = batched
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       for i in range(num_batches):
@@ -474,9 +474,9 @@ class BatchTest(tf.test.TestCase):
       zero64 = tf.constant(0, dtype=tf.int64)
       examples = tf.Variable(zero64)
       counter = examples.count_up_to(num_batches * batch_size)
-      string = tf.tile(["string"], tf.to_int32(tf.stack([counter])))
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      string = tf.tile(["string"], tf.to_int32(tf.pack([counter])))
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       batched = tf.train.batch(
           [counter, string], batch_size=batch_size, dynamic_pad=True)
       threads = tf.train.start_queue_runners()
@@ -506,14 +506,14 @@ class BatchTest(tf.test.TestCase):
       counter = examples.count_up_to(num_batches * batch_size)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       pre_batched = tf.train.batch(
           [counter, sparse_counter, "string"], batch_size=2)
       batched = tf.train.batch(pre_batched, enqueue_many=True,
                                batch_size=batch_size)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       for i in range(num_batches):
@@ -544,13 +544,13 @@ class BatchTest(tf.test.TestCase):
       counter = examples.count_up_to(num_batches * batch_size)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       batched = tf.train.batch(
           [counter, sparse_counter, "string"],
           batch_size=batch_size, num_threads=4)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       all_counts = []
@@ -582,14 +582,14 @@ class BatchTest(tf.test.TestCase):
       examples = tf.Variable(zero64)
       counter = examples.count_up_to(num_batches * batch_size + extra_elements)
       sparse_counter = tf.SparseTensor(
-          indices=tf.reshape(tf.stack([zero64, zero64 + 1]), [2, 1]),
-          values=tf.cast(tf.stack([counter, -counter]), tf.float32),
+          indices=tf.reshape(tf.pack([zero64, zero64 + 1]), [2, 1]),
+          values=tf.cast(tf.pack([counter, -counter]), tf.float32),
           shape=[2])
       batched = tf.train.batch(
           [counter, sparse_counter, "string"], batch_size=batch_size,
           allow_smaller_final_batch=True)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       for i in range(num_batches):
@@ -636,13 +636,13 @@ class BatchTest(tf.test.TestCase):
       counter = examples.count_up_to(num_batches * batch_size + extra_elements)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       batched = tf.train.batch(
           [counter, sparse_counter, "string"],
           batch_size=batch_size, num_threads=4, allow_smaller_final_batch=True)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       all_counts = []
@@ -701,37 +701,37 @@ class BatchTest(tf.test.TestCase):
 
   def testBatchedSparseTensorInferredShape(self):
     sparse = tf.SparseTensor(indices=[[0]], values=[1.0], shape=[1])
-    self.assertAllEqual((1,), sparse.shape.get_shape().as_list())
+    self.assertAllEqual(sparse.shape.get_shape().as_list(), [1])
     batched = tf.train.batch([sparse], batch_size=2)
-    self.assertAllEqual((2,), batched.shape.get_shape().as_list())
+    self.assertAllEqual(batched.shape.get_shape().as_list(), [2])
 
   def testBatchedSparseTensorInferredShapeEnqueueMany(self):
     sparse = tf.SparseTensor(indices=[[0]], values=[1.0], shape=[1])
-    self.assertAllEqual((1,), sparse.shape.get_shape().as_list())
+    self.assertAllEqual(sparse.shape.get_shape().as_list(), [1])
     batched = tf.train.batch([sparse], batch_size=2, enqueue_many=True)
-    self.assertAllEqual((1,), batched.shape.get_shape().as_list())
+    self.assertAllEqual(batched.shape.get_shape().as_list(), [1])
 
   def testBatchedSparseTensorInferredShapeUnknownRank(self):
     sparse = tf.SparseTensor(
         indices=tf.placeholder(tf.int64),
         values=tf.placeholder(tf.float32),
         shape=tf.placeholder(tf.int64))
-    self.assertIs(None, sparse.shape.get_shape().num_elements())
+    self.assertIs(sparse.shape.get_shape().num_elements(), None)
     batched = tf.train.batch([sparse], batch_size=2)
-    self.assertIs(None, batched.shape.get_shape().num_elements())
+    self.assertIs(batched.shape.get_shape().num_elements(), None)
 
   def testBatchedSparseTensorInferredShapeUnknownRankEnqueueMany(self):
     sparse = tf.SparseTensor(
         indices=tf.placeholder(tf.int64),
         values=tf.placeholder(tf.float32),
         shape=tf.placeholder(tf.int64))
-    self.assertIs(None, sparse.shape.get_shape().num_elements())
+    self.assertIs(sparse.shape.get_shape().num_elements(), None)
     batched = tf.train.batch([sparse], batch_size=2, enqueue_many=True)
-    self.assertIs(None, batched.shape.get_shape().num_elements())
+    self.assertIs(batched.shape.get_shape().num_elements(), None)
 
   def testSingleElementDict(self):
     x = tf.train.batch({"c": [12, 12]}, batch_size=8)
-    self.assertAllEqual((8, 2), x["c"].get_shape().as_list())
+    self.assertEqual([8, 2], x["c"].get_shape().as_list())
 
 
 class BatchJoinTest(tf.test.TestCase):
@@ -745,7 +745,7 @@ class BatchJoinTest(tf.test.TestCase):
       counter = examples.count_up_to(num_a)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
 
       # The second generates (99, "b") 90 times and then stops.
@@ -754,7 +754,7 @@ class BatchJoinTest(tf.test.TestCase):
           tf.constant(99, dtype=tf.int64), num_b)
       sparse_ninety_nine = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(ninety_nine, tf.float32)]),
+          values=tf.pack([tf.cast(ninety_nine, tf.float32)]),
           shape=[1])
 
       # These get joined together and grouped into batches of 5.
@@ -771,19 +771,8 @@ class BatchJoinTest(tf.test.TestCase):
              [ninety_nine, sparse_ninety_nine, "b"]],
             batch_size=batch_size)
         batched_fetch = batched
-
-      # Shapes.
-      self.assertEqual(3, len(batched_fetch))
-      self.assertAllEqual((batch_size,), batched_fetch[0].get_shape().as_list())
-      self.assertAllEqual(
-          (None, 2), batched_fetch[1].indices.get_shape().as_list())
-      self.assertAllEqual(
-          (None,), batched_fetch[1].values.get_shape().as_list())
-      self.assertAllEqual((2,), batched_fetch[1].shape.get_shape().as_list())
-      self.assertAllEqual((batch_size,), batched_fetch[2].get_shape().as_list())
-
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Should see the "a" and "b" threads mixed together.
@@ -793,9 +782,9 @@ class BatchJoinTest(tf.test.TestCase):
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
         results = sess.run(batched_fetch)
-        self.assertEqual(3, len(results))
-        self.assertEqual(batch_size, len(results[0]))
-        self.assertEqual(batch_size, len(results[2]))
+        tf.logging.info("Batch %d: %s", i, results[0])
+        self.assertEqual(len(results[0]), batch_size)
+        self.assertEqual(len(results[2]), batch_size)
         self.assertAllEqual(results[0], results[1].values)
         self.assertAllEqual(
             results[1].indices,
@@ -851,20 +840,14 @@ class BatchJoinTest(tf.test.TestCase):
 
       # These get joined together and grouped into batches of 5.
       batch_size = 5
-      a = tf.tile(["a"], tf.to_int32(tf.stack([counter + 1])))
-      b = tf.tile(["b"], tf.to_int32(tf.stack([ninety_nine])))
+      a = tf.tile(["a"], tf.to_int32(tf.pack([counter + 1])))
+      b = tf.tile(["b"], tf.to_int32(tf.pack([ninety_nine])))
       batched = tf.train.batch_join(
           [[counter, a],
            [ninety_nine, b]],
           batch_size=batch_size, dynamic_pad=True)
-
-      # Shapes.
-      self.assertEqual(2, len(batched))
-      self.assertAllEqual((batch_size,), batched[0].get_shape().as_list())
-      self.assertAllEqual((batch_size, None), batched[1].get_shape().as_list())
-
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Should see the "a" and "b" threads mixed together.
@@ -875,7 +858,7 @@ class BatchJoinTest(tf.test.TestCase):
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
         results = sess.run(batched)
-        self.assertEqual(2, len(results))
+        tf.logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[1]), batch_size)
         for s in results[1]:
@@ -917,7 +900,7 @@ class BatchJoinTest(tf.test.TestCase):
       counter = examples.count_up_to(num_a)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
 
       # The second generates (99, "b") 90 times and then stops.
@@ -926,7 +909,7 @@ class BatchJoinTest(tf.test.TestCase):
           tf.constant(99, dtype=tf.int64), num_b)
       sparse_ninety_nine = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(ninety_nine, tf.float32)]),
+          values=tf.pack([tf.cast(ninety_nine, tf.float32)]),
           shape=[1])
 
       # These get joined together and grouped into batches of 5.
@@ -937,16 +920,8 @@ class BatchJoinTest(tf.test.TestCase):
           batch_size=batch_size,
           allow_smaller_final_batch=True)
 
-      # Shapes.
-      self.assertEqual(3, len(batched))
-      self.assertAllEqual((None,), batched[0].get_shape().as_list())
-      self.assertAllEqual((None, 2), batched[1].indices.get_shape().as_list())
-      self.assertAllEqual((None,), batched[1].values.get_shape().as_list())
-      self.assertAllEqual((2,), batched[1].shape.get_shape().as_list())
-      self.assertAllEqual((None,), batched[2].get_shape().as_list())
-
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Should see the "a" and "b" threads mixed together.
@@ -1020,22 +995,16 @@ class BatchJoinTest(tf.test.TestCase):
 
       # These get joined together and grouped into batches of 5.
       batch_size = 5
-      a = tf.tile(["a"], tf.to_int32(tf.stack([counter + 1])))
-      b = tf.tile(["b"], tf.to_int32(tf.stack([ninety_nine])))
+      a = tf.tile(["a"], tf.to_int32(tf.pack([counter + 1])))
+      b = tf.tile(["b"], tf.to_int32(tf.pack([ninety_nine])))
       batched = tf.train.batch_join(
           [[counter, a],
            [ninety_nine, b]],
           batch_size=batch_size,
           dynamic_pad=True,
           allow_smaller_final_batch=True)
-
-      # Shapes.
-      self.assertEqual(2, len(batched))
-      self.assertAllEqual((None,), batched[0].get_shape().as_list())
-      self.assertAllEqual((None, None), batched[1].get_shape().as_list())
-
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Should see the "a" and "b" threads mixed together.
@@ -1106,11 +1075,6 @@ class BatchJoinTest(tf.test.TestCase):
           [[counter, "string"]], batch_size=batch_size,
           shared_name="SHARED_NAME_XYZ", name="Q")
 
-      # Shapes.
-      self.assertEqual(2, len(batched))
-      self.assertAllEqual((batch_size,), batched[0].get_shape().as_list())
-      self.assertAllEqual((batch_size,), batched[1].get_shape().as_list())
-
       self.assertProtoEquals(
           "s: 'SHARED_NAME_XYZ'",
           batched[0].op.inputs[0].op.node_def.attr["shared_name"])
@@ -1123,7 +1087,7 @@ class BatchJoinTest(tf.test.TestCase):
 
   def testSingleElementDict(self):
     x = tf.train.batch_join([{"c": [12, 12]}], batch_size=8)
-    self.assertAllEqual((8, 2), x["c"].get_shape().as_list())
+    self.assertEqual([8, 2], x["c"].get_shape().as_list())
 
 
 class ShuffleBatchTest(tf.test.TestCase):
@@ -1137,7 +1101,7 @@ class ShuffleBatchTest(tf.test.TestCase):
       counter = examples.count_up_to(num_batches * batch_size)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       if use_dict:
         batched = tf.train.shuffle_batch(
@@ -1151,8 +1115,8 @@ class ShuffleBatchTest(tf.test.TestCase):
             batch_size=batch_size, capacity=32,
             min_after_dequeue=16, seed=141421)
         batched_fetch = batched
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       all_counts = []
@@ -1195,7 +1159,7 @@ class ShuffleBatchTest(tf.test.TestCase):
       counter = examples.count_up_to(total_elements)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       batched = tf.train.shuffle_batch(
           [counter, sparse_counter, "string"],
@@ -1203,8 +1167,8 @@ class ShuffleBatchTest(tf.test.TestCase):
           min_after_dequeue=16, seed=141421,
           allow_smaller_final_batch=True)
       batched_fetch = batched
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       all_counts = []
@@ -1246,14 +1210,14 @@ class ShuffleBatchTest(tf.test.TestCase):
       counter = examples.count_up_to(num_batches * batch_size)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       batched = tf.train.shuffle_batch(
           [counter, sparse_counter, "string"],
           batch_size=batch_size, capacity=32,
           min_after_dequeue=16, seed=173205, num_threads=4)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       all_counts = []
@@ -1291,15 +1255,15 @@ class ShuffleBatchTest(tf.test.TestCase):
       counter = examples.count_up_to(total_elements)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
       batched = tf.train.shuffle_batch(
           [counter, sparse_counter, "string"],
           batch_size=batch_size, capacity=32,
           min_after_dequeue=16, seed=173205, num_threads=4,
           allow_smaller_final_batch=True)
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       all_counts = []
@@ -1363,7 +1327,7 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
       counter = examples.count_up_to(num_a)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
 
       # The second generates (99, "b") 35 times and then stops.
@@ -1372,7 +1336,7 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
           tf.constant(99, dtype=tf.int64), num_b)
       sparse_ninety_nine = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(ninety_nine, tf.float32)]),
+          values=tf.pack([tf.cast(ninety_nine, tf.float32)]),
           shape=[1])
 
       # These get joined together and grouped into batches of 5.
@@ -1392,18 +1356,8 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
             min_after_dequeue=16, seed=223607)
         batched_fetch = batched
 
-      # Shapes.
-      self.assertEqual(3, len(batched_fetch))
-      self.assertAllEqual((batch_size,), batched_fetch[0].get_shape().as_list())
-      self.assertAllEqual(
-          (None, 2), batched_fetch[1].indices.get_shape().as_list())
-      self.assertAllEqual(
-          (None,), batched_fetch[1].values.get_shape().as_list())
-      self.assertAllEqual((2,), batched_fetch[1].shape.get_shape().as_list())
-      self.assertAllEqual((batch_size,), batched_fetch[2].get_shape().as_list())
-
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Should see the "a" and "b" threads mixed together.
@@ -1413,7 +1367,7 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
       num_batches = (num_a + num_b) // batch_size
       for i in range(num_batches):
         results = sess.run(batched_fetch)
-        self.assertEqual(3, len(results))
+        tf.logging.info("Batch %d: %s", i, results[0])
         self.assertEqual(len(results[0]), batch_size)
         self.assertEqual(len(results[2]), batch_size)
         self.assertAllEqual(results[0], results[1].values)
@@ -1462,7 +1416,7 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
       counter = examples.count_up_to(num_a)
       sparse_counter = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(counter, tf.float32)]),
+          values=tf.pack([tf.cast(counter, tf.float32)]),
           shape=[1])
 
       # The second generates (99, "b") 37 times and then stops.
@@ -1471,7 +1425,7 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
           tf.constant(99, dtype=tf.int64), num_b)
       sparse_ninety_nine = tf.SparseTensor(
           indices=tf.reshape(zero64, [1, 1]),
-          values=tf.stack([tf.cast(ninety_nine, tf.float32)]),
+          values=tf.pack([tf.cast(ninety_nine, tf.float32)]),
           shape=[1])
 
       # These get joined together and grouped into batches of 5.
@@ -1482,16 +1436,8 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
           batch_size=batch_size, capacity=32,
           min_after_dequeue=16, seed=223607, allow_smaller_final_batch=True)
 
-      # Shapes.
-      self.assertEqual(3, len(batched))
-      self.assertAllEqual((None,), batched[0].get_shape().as_list())
-      self.assertAllEqual((None, 2), batched[1].indices.get_shape().as_list())
-      self.assertAllEqual((None,), batched[1].values.get_shape().as_list())
-      self.assertAllEqual((2,), batched[1].shape.get_shape().as_list())
-      self.assertAllEqual((None,), batched[2].get_shape().as_list())
-
-      tf.global_variables_initializer().run()
-      tf.local_variables_initializer().run()
+      tf.initialize_all_variables().run()
+      tf.initialize_local_variables().run()
       threads = tf.train.start_queue_runners()
 
       # Should see the "a" and "b" threads mixed together.
@@ -1571,11 +1517,6 @@ class ShuffleBatchJoinTest(tf.test.TestCase):
           capacity=32,
           min_after_dequeue=10,
           shared_name="SHARED_NAME_XYZ", name="Q")
-
-      # Shapes.
-      self.assertEqual(2, len(batched))
-      self.assertAllEqual((batch_size,), batched[0].get_shape().as_list())
-      self.assertAllEqual((batch_size,), batched[1].get_shape().as_list())
 
       self.assertProtoEquals(
           "s: 'SHARED_NAME_XYZ'",

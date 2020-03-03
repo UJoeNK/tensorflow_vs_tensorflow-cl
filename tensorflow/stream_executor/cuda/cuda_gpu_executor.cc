@@ -13,17 +13,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+// #include <cuda_device_runtime_api.h>
+#include "cuda.h"
+
 #include "tensorflow/stream_executor/cuda/cuda_gpu_executor.h"
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
-#if defined(PLATFORM_WINDOWS)
-#include <windows.h>
-#define PATH_MAX MAX_PATH
-#else
 #include <unistd.h>
-#endif
+
 #include "tensorflow/stream_executor/cuda/cuda_diagnostics.h"
 #include "tensorflow/stream_executor/cuda/cuda_driver.h"
 #include "tensorflow/stream_executor/cuda/cuda_event.h"
@@ -177,7 +176,7 @@ bool CUDAExecutor::FindOnDiskForComputeCapability(
   // have been migrated.
   string cc_specific = port::StrCat(filename.ToString(), ".cc", cc_major_,
                                     cc_minor_, canonical_suffix.ToString());
-  if (port::FileExists(cc_specific).ok()) {
+  if (port::FileExists(cc_specific)) {
     VLOG(2) << "found compute-capability-specific file, using that: "
             << cc_specific;
     *found_filename = cc_specific;
@@ -186,7 +185,7 @@ bool CUDAExecutor::FindOnDiskForComputeCapability(
 
   VLOG(2) << "could not find compute-capability specific file at: "
           << cc_specific;
-  if (port::FileExists(filename.ToString()).ok()) {
+  if (port::FileExists(filename.ToString())) {
     *found_filename = filename.ToString();
     return true;
   }
@@ -208,12 +207,7 @@ static string GetBinaryDir(bool strip_exe) {
     _NSGetExecutablePath(unresolved_path, &buffer_size);
     CHECK_ERR(realpath(unresolved_path, exe_path) ? 1 : -1);
 #else
-#if defined(PLATFORM_WINDOWS)
-  HMODULE hModule = GetModuleHandle(NULL);
-  GetModuleFileName(hModule, exe_path, MAX_PATH);
-#else
-  CHECK_ERR(readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1));
-#endif
+    CHECK_ERR(readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1));
 #endif
   // Make sure it's null-terminated:
   exe_path[sizeof(exe_path) - 1] = 0;
@@ -899,9 +893,6 @@ CudaContext* CUDAExecutor::cuda_context() { return context_; }
 static int TryToReadNumaNode(const string &pci_bus_id, int device_ordinal) {
 #if defined(__APPLE__)
   LOG(INFO) << "OS X does not support NUMA - returning NUMA node zero";
-  return 0;
-#elif defined(PLATFORM_WINDOWS)
-  // Windows support for NUMA is not currently implemented. Return node 0.
   return 0;
 #else
   VLOG(2) << "trying to read NUMA node for device ordinal: " << device_ordinal;

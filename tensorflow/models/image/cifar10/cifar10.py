@@ -207,8 +207,8 @@ def inference(images):
                                          wd=0.0)
     conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
     biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
-    pre_activation = tf.nn.bias_add(conv, biases)
-    conv1 = tf.nn.relu(pre_activation, name=scope.name)
+    bias = tf.nn.bias_add(conv, biases)
+    conv1 = tf.nn.relu(bias, name=scope.name)
     _activation_summary(conv1)
 
   # pool1
@@ -226,8 +226,8 @@ def inference(images):
                                          wd=0.0)
     conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
     biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
-    pre_activation = tf.nn.bias_add(conv, biases)
-    conv2 = tf.nn.relu(pre_activation, name=scope.name)
+    bias = tf.nn.bias_add(conv, biases)
+    conv2 = tf.nn.relu(bias, name=scope.name)
     _activation_summary(conv2)
 
   # norm2
@@ -256,10 +256,7 @@ def inference(images):
     local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
     _activation_summary(local4)
 
-  # linear layer(WX + b),
-  # We don't apply softmax here because 
-  # tf.nn.sparse_softmax_cross_entropy_with_logits accepts the unscaled logits 
-  # and performs the softmax internally for efficiency.
+  # softmax, i.e. softmax(WX + b)
   with tf.variable_scope('softmax_linear') as scope:
     weights = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
                                           stddev=1/192.0, wd=0.0)
@@ -394,5 +391,4 @@ def maybe_download_and_extract():
     print()
     statinfo = os.stat(filepath)
     print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
-  
-  tarfile.open(filepath, 'r:gz').extractall(dest_directory)
+    tarfile.open(filepath, 'r:gz').extractall(dest_directory)

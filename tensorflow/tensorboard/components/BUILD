@@ -8,8 +8,8 @@ filegroup(
     name = "all_files",
     srcs = glob(
         [
-            "tf_*/**/*",
-            "vz_*/**/*",
+            "tf-*/**/*",
+            "vz-*/**/*",
         ],
         exclude = [
             "**/tf_model_zoo/*",

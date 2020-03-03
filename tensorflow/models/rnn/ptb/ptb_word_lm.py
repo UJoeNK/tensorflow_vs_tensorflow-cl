@@ -130,7 +130,8 @@ class PTBModel(object):
     #
     # The alternative version of the code below is:
     #
-    # inputs = tf.unstack(inputs, num=num_steps, axis=1)
+    # inputs = [tf.squeeze(input_step, [1])
+    #           for input_step in tf.split(1, num_steps, inputs)]
     # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
     outputs = []
     state = self._initial_state
@@ -338,7 +339,7 @@ def main(_):
       tf.scalar_summary("Validation Loss", mvalid.cost)
 
     with tf.name_scope("Test"):
-      test_input = PTBInput(config=eval_config, data=test_data, name="TestInput")
+      test_input = PTBInput(config=config, data=test_data, name="TestInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
         mtest = PTBModel(is_training=False, config=eval_config,
                          input_=test_input)
@@ -346,7 +347,7 @@ def main(_):
     sv = tf.train.Supervisor(logdir=FLAGS.save_path)
     with sv.managed_session() as session:
       for i in range(config.max_max_epoch):
-        lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
+        lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
         m.assign_lr(session, config.learning_rate * lr_decay)
 
         print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))

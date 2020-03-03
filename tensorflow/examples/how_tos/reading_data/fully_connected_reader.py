@@ -29,7 +29,6 @@ from __future__ import print_function
 
 import argparse
 import os.path
-import sys
 import time
 
 import tensorflow as tf
@@ -138,8 +137,8 @@ def run_training():
     train_op = mnist.training(loss, FLAGS.learning_rate)
 
     # The op for initializing the variables.
-    init_op = tf.group(tf.global_variables_initializer(),
-                       tf.local_variables_initializer())
+    init_op = tf.group(tf.initialize_all_variables(),
+                       tf.initialize_local_variables())
 
     # Create a session for running operations in the Graph.
     sess = tf.Session()
@@ -225,5 +224,6 @@ if __name__ == '__main__':
       default='/tmp/data',
       help='Directory with the training data.'
   )
-  FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  FLAGS = parser.parse_args()
+
+  tf.app.run()

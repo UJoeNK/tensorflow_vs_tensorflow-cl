@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import os
 
 import numpy as np
@@ -79,7 +78,7 @@ def parse_node_or_tensor_name(name):
     return name, None
 
 
-def _get_tensor_name(node_name, output_slot):
+def get_tensor_name(node_name, output_slot):
   """Get tensor name given node name and output slot index.
 
   Args:
@@ -93,7 +92,7 @@ def _get_tensor_name(node_name, output_slot):
   return "%s:%d" % (node_name, output_slot)
 
 
-def _get_tensor_watch_key(node_name, output_slot, debug_op):
+def get_tensor_watch_key(node_name, output_slot, debug_op):
   """Get the string representation of a debug watch on a tensor.
 
   Args:
@@ -107,10 +106,10 @@ def _get_tensor_watch_key(node_name, output_slot, debug_op):
     A string representing the debug watch on the tensor (i.e., the "watch
         key").
   """
-  return "%s:%s" % (_get_tensor_name(node_name, output_slot), debug_op)
+  return "%s:%s" % (get_tensor_name(node_name, output_slot), debug_op)
 
 
-def _is_copy_node(node_name):
+def is_copy_node(node_name):
   """Determine whether a node name is that of a debug Copy node.
 
   Such nodes are inserted by TensorFlow core upon request in
@@ -126,7 +125,7 @@ def _is_copy_node(node_name):
   return node_name.startswith("__copy_")
 
 
-def _is_debug_node(node_name):
+def is_debug_node(node_name):
   """Determine whether a node name is that of a debug node.
 
   Such nodes are inserted by TensorFlow core upon request in
@@ -141,7 +140,7 @@ def _is_debug_node(node_name):
   return node_name.startswith("__dbg_")
 
 
-def _parse_debug_node_name(node_name):
+def parse_debug_node_name(node_name):
   """Parse the name of a debug node.
 
   Args:
@@ -283,7 +282,7 @@ class DebugTensorDatum(object):
 
   @property
   def tensor_name(self):
-    return _get_tensor_name(self.node_name, self.output_slot)
+    return get_tensor_name(self.node_name, self.output_slot)
 
   @property
   def watch_key(self):
@@ -292,8 +291,7 @@ class DebugTensorDatum(object):
     Returns:
       A watch key, in the form of <tensor_name>:<debug_op>.
     """
-    return _get_tensor_watch_key(self.node_name, self.output_slot,
-                                 self.debug_op)
+    return get_tensor_watch_key(self.node_name, self.output_slot, self.debug_op)
 
   @property
   def file_path(self):
@@ -330,14 +328,6 @@ class DebugDumpDir(object):
     self._dump_root = dump_root
     self._dump_tensor_data = []
 
-    # A map from node name to debug watches.
-    # The key is the watched node name.
-    # The value is a dictionary.
-    #   Of this dictionary, the key is the watched_output_slot.
-    #   The value is a set of debug ops watching this output slot.
-    self._debug_watches = collections.defaultdict(
-        lambda: collections.defaultdict(set))
-
     for root, _, files in os.walk(self._dump_root):
       for f in files:
         if f.count("_") < 3:
@@ -346,16 +336,8 @@ class DebugDumpDir(object):
 
         debug_dump_rel_path = os.path.join(
             os.path.relpath(root, self._dump_root), f)
-        datum = DebugTensorDatum(self._dump_root, debug_dump_rel_path)
-        self._dump_tensor_data.append(datum)
-
-        # Attempt to load the debug watches from the tensor dump files first,
-        # before loading the full set of debug watches from the partition
-        # graphs as done further below.
-        # This is necessary because sometimes the partition graphs may not be
-        # available, e.g., when the run errors out.
-        self._debug_watches[datum.node_name][datum.output_slot].add(
-            datum.debug_op)
+        self._dump_tensor_data.append(
+            DebugTensorDatum(self._dump_root, debug_dump_rel_path))
 
     # Sort the data by ascending timestamp.
     # This sorting order reflects the order in which the TensorFlow
@@ -401,6 +383,7 @@ class DebugDumpDir(object):
     self._devices = None
     self._node_devices = None
     self._node_op_types = None
+    self._debug_watches = None
 
     # Check the dump data against partition executor graphs.
     if partition_graphs:
@@ -465,6 +448,13 @@ class DebugDumpDir(object):
     # A map from node name to control recipients of the node.
     self._node_ctrl_recipients = {}
 
+    # A map from node name to debug watches.
+    # The key is the watched node name.
+    # The value is a dictionary.
+    #   Of this dictionary, the key is the watched_output_slot.
+    #   The value is a list of debug ops watching this output slot.
+    self._debug_watches = {}
+
     # A map from node name to devices (as indices to self._devices)
     self._devices = []
     self._node_devices = {}
@@ -477,15 +467,24 @@ class DebugDumpDir(object):
 
     for pg in self._partition_graphs:
       for node in pg.node:
-        if _is_debug_node(node.name):
+        if is_debug_node(node.name):
           # This is a debug node. Parse the node name and retrieve the
           # information about debug watches on tensors. But do not include
           # the node in the graph.
           (watched_node_name, watched_output_slot, _,
-           debug_op) = _parse_debug_node_name(node.name)
+           debug_op) = parse_debug_node_name(node.name)
 
-          self._debug_watches[watched_node_name][watched_output_slot].add(
-              debug_op)
+          if watched_node_name not in self._debug_watches:
+            self._debug_watches[
+                watched_node_name] = {watched_output_slot: [debug_op]}
+          else:
+            if watched_output_slot not in self._debug_watches[
+                watched_node_name]:
+              self._debug_watches[watched_node_name][
+                  watched_output_slot] = [debug_op]
+            else:
+              self._debug_watches[watched_node_name][watched_node_name].append(
+                  debug_op)
 
           continue
 
@@ -508,7 +507,7 @@ class DebugDumpDir(object):
         self._node_op_types[node.name] = node.op
 
         for inp in node.input:
-          if _is_copy_node(inp) and node.op == "_Send":
+          if is_copy_node(inp) and node.op == "_Send":
             copy_send_nodes.append(node.name)
 
           if inp.startswith("^"):
@@ -525,14 +524,14 @@ class DebugDumpDir(object):
       if node in copy_send_nodes:
         continue
 
-      if _is_copy_node(node):
+      if is_copy_node(node):
         copy_nodes.append(node)
 
       inputs = self._node_inputs[node]
 
       for i in xrange(len(inputs)):
         inp = inputs[i]
-        if _is_copy_node(inp):
+        if is_copy_node(inp):
           # Find the input to the Copy node, which should be the original
           # input to the node.
           orig_inp = self._node_inputs[inp][0]
@@ -557,7 +556,7 @@ class DebugDumpDir(object):
       ctrl_inputs = self._node_ctrl_inputs[node]
       debug_op_inputs = []
       for ctrl_inp in ctrl_inputs:
-        if _is_debug_node(ctrl_inp):
+        if is_debug_node(ctrl_inp):
           debug_op_inputs.append(ctrl_inp)
       for debug_op_inp in debug_op_inputs:
         ctrl_inputs.remove(debug_op_inp)
@@ -636,10 +635,6 @@ class DebugDumpDir(object):
             del recipient_pending_inputs[:]
           else:
             del recipient_pending_inputs[recipient_pending_inputs.index(node)]
-
-  def loaded_partition_graphs(self):
-    """Test whether partition graphs have been loaded."""
-    return self._partition_graphs is not None
 
   def partition_graphs(self):
     """Get the partition graphs.
@@ -927,7 +922,7 @@ class DebugDumpDir(object):
       debug_ops = self._debug_watches[node_name][watched_slot]
       for debug_op in debug_ops:
         watch_keys.append(
-            _get_tensor_watch_key(node_name, watched_slot, debug_op))
+            get_tensor_watch_key(node_name, watched_slot, debug_op))
 
     return watch_keys
 
@@ -992,7 +987,7 @@ class DebugDumpDir(object):
       ValueError: If the tensor does not exist in the debub dump data.
     """
 
-    watch_key = _get_tensor_watch_key(node_name, output_slot, debug_op)
+    watch_key = get_tensor_watch_key(node_name, output_slot, debug_op)
     if watch_key not in self._watch_key_to_datum:
       raise ValueError("Watch key \"%s\" does not exist in the debug dump" %
                        watch_key)
@@ -1017,7 +1012,7 @@ class DebugDumpDir(object):
       ValueError: If the tensor does not exist in the debub dump data.
     """
 
-    watch_key = _get_tensor_watch_key(node_name, output_slot, debug_op)
+    watch_key = get_tensor_watch_key(node_name, output_slot, debug_op)
     if watch_key not in self._watch_key_to_datum:
       raise ValueError("Watch key \"%s\" does not exist in the debug dump" %
                        watch_key)
@@ -1044,7 +1039,7 @@ class DebugDumpDir(object):
       ValueError: If the tensor does not exist in the debub dump data.
     """
 
-    watch_key = _get_tensor_watch_key(node_name, output_slot, debug_op)
+    watch_key = get_tensor_watch_key(node_name, output_slot, debug_op)
     if watch_key not in self._watch_key_to_datum:
       raise ValueError("Watch key \"%s\" does not exist in the debug dump" %
                        watch_key)

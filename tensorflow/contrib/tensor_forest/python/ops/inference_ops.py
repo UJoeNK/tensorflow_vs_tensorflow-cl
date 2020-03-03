@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import threading
 
+from tensorflow.python.framework import common_shapes
 from tensorflow.python.framework import load_library
 from tensorflow.python.framework import ops
 from tensorflow.python.platform import resource_loader
@@ -34,6 +35,9 @@ _ops_lock = threading.Lock()
 # TODO(b/31222613): This op may be differentiable, and there may be
 # latent bugs here.
 ops.NotDifferentiable('TreePredictions')
+
+
+ops.RegisterShape('TreePredictions')(common_shapes.call_cpp_shape_fn)
 
 
 # Workaround for the fact that importing tensorflow imports contrib

@@ -36,7 +36,7 @@ cuda_py_tests(
 
 cuda_py_tests(
     name = "operator_pd_cholesky_test",
-    size = "medium",
+    size = "small",
     srcs = ["python/kernel_tests/operator_pd_cholesky_test.py"],
     additional_deps = [
         ":distributions_py",
@@ -60,7 +60,7 @@ cuda_py_tests(
 
 cuda_py_tests(
     name = "operator_pd_full_test",
-    size = "medium",
+    size = "small",
     srcs = ["python/kernel_tests/operator_pd_full_test.py"],
     additional_deps = [
         ":distributions_py",
@@ -72,7 +72,7 @@ cuda_py_tests(
 
 cuda_py_tests(
     name = "operator_pd_identity_test",
-    size = "medium",
+    size = "small",
     srcs = ["python/kernel_tests/operator_pd_identity_test.py"],
     additional_deps = [
         ":distributions_py",
@@ -122,6 +122,7 @@ cuda_py_tests(
         "//tensorflow:tensorflow_py",
         "//tensorflow/python:platform_test",
     ],
+    tags = ["notsan"],  #http://b/31216497
 )
 
 cuda_py_tests(
@@ -293,7 +294,6 @@ cuda_py_tests(
         "//tensorflow/python:framework_test_lib",
         "//tensorflow/python:platform_test",
     ],
-    tags = ["nomsan"],  # disable to avoid false positives from scipy.
 )
 
 cuda_py_tests(
@@ -349,6 +349,7 @@ cuda_py_tests(
         "//tensorflow:tensorflow_py",
         "//tensorflow/python:platform_test",
     ],
+    tags = ["notsan"],  #http://b/31455709
 )
 
 cuda_py_tests(
@@ -388,7 +389,7 @@ cuda_py_tests(
 
 cuda_py_tests(
     name = "bijector_test",
-    size = "medium",
+    size = "small",
     srcs = ["python/kernel_tests/bijector_test.py"],
     additional_deps = [
         ":distributions_py",

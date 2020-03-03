@@ -37,6 +37,7 @@ perftools::gputools::DeviceMemory<T> AsDeviceMemory(const T* cuda_memory) {
 namespace functor {
 template <typename T>
 void TensorCuBlasGemm<T>::operator()(OpKernelContext* ctx,
+                                     perftools::gputools::Stream* stream,
                                      bool transa, bool transb, uint64 m,
                                      uint64 n, uint64 k, T alpha, const T* a,
                                      int lda, const T* b, int ldb, T beta, T* c,
@@ -51,8 +52,7 @@ void TensorCuBlasGemm<T>::operator()(OpKernelContext* ctx,
   auto c_ptr = AsDeviceMemory(c);
 
   bool blas_launch_status =
-      ctx->op_device_context()
-          ->stream()
+      stream
           ->ThenBlasGemm(trans[transa], trans[transb], m, n, k, alpha, a_ptr,
                          lda, b_ptr, ldb, beta, &c_ptr, ldc)
           .ok();

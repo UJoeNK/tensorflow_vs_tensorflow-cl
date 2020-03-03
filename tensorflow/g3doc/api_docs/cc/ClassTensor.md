@@ -100,6 +100,12 @@ Convenience accessor for the tensor shape.
 
 
 
+#### `size_t tensorflow::Tensor::BufferHash() const` {#size_t_tensorflow_Tensor_BufferHash}
+
+
+
+
+
 #### `bool tensorflow::Tensor::IsInitialized() const` {#bool_tensorflow_Tensor_IsInitialized}
 
 If necessary, has this Tensor been initialized?
@@ -373,7 +379,7 @@ NOTE: The underlying tensor buffer is refcounted, so the lifetime of the content
 
 REQUIRES: `DataTypeCanUseMemcpy(dtype())`.
 
-#### `void tensorflow::Tensor::UnsafeCopyFromInternal(const Tensor &, DataType dtype, const TensorShape &)` {#void_tensorflow_Tensor_UnsafeCopyFromInternal}
+#### `void tensorflow::Tensor::UnsafeCopyFromInternal(const Tensor &, const TensorShape &)` {#void_tensorflow_Tensor_UnsafeCopyFromInternal}
 
 
 

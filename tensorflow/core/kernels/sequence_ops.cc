@@ -95,14 +95,14 @@ TF_CALL_double(REGISTER_CPU_KERNEL);
 TF_CALL_int32(REGISTER_CPU_KERNEL);
 TF_CALL_int64(REGISTER_CPU_KERNEL);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 TF_CALL_float(REGISTER_GPU_KERNEL);
-TF_CALL_double(REGISTER_GPU_KERNEL);
+// TF_CALL_double(REGISTER_GPU_KERNEL);
 TF_CALL_int32(REGISTER_GPU_KERNEL);
-TF_CALL_int64(REGISTER_GPU_KERNEL);
+// TF_CALL_int64(REGISTER_GPU_KERNEL);
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 #undef REGISTER_KERNEL
 #undef REGISTER_CPU_KERNEL
@@ -144,15 +144,14 @@ class LinSpaceOp : public OpKernel {
   }
 };
 
-#define REGISTER_KERNEL(DEV, T)                              \
-  REGISTER_KERNEL_BUILDER(Name("LinSpace")                   \
-                              .Device(DEV)                   \
-                              .TypeConstraint<T>("T")        \
-                              .TypeConstraint<int32>("Tidx") \
-                              .HostMemory("start")           \
-                              .HostMemory("stop")            \
-                              .HostMemory("num")             \
-                              .HostMemory("output"),         \
+#define REGISTER_KERNEL(DEV, T)                       \
+  REGISTER_KERNEL_BUILDER(Name("LinSpace")            \
+                              .Device(DEV)            \
+                              .TypeConstraint<T>("T") \
+                              .HostMemory("start")    \
+                              .HostMemory("stop")     \
+                              .HostMemory("num")      \
+                              .HostMemory("output"),  \
                           LinSpaceOp<T>);
 #define REGISTER_CPU_KERNEL(T) REGISTER_KERNEL(DEVICE_CPU, T)
 TF_CALL_float(REGISTER_CPU_KERNEL);

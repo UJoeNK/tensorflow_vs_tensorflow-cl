@@ -31,11 +31,10 @@ namespace tensorflow {
 // device status attributes.
 class WorkerCachePartial : public WorkerCacheInterface {
  public:
-  bool GetDeviceLocalityNonBlocking(const string& device,
-                                    DeviceLocality* locality) override;
+  bool GetDeviceBusNonBlocking(const string& device, BusAdjacency* ba) override;
 
-  void GetDeviceLocalityAsync(const string& device, DeviceLocality* locality,
-                              StatusCallback) override;
+  void GetDeviceBusAsync(const string& device, BusAdjacency* ba,
+                         StatusCallback) override;
 
   ~WorkerCachePartial() override {}
 

@@ -20,7 +20,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import json
 import os
 
 from six.moves import urllib
@@ -241,16 +240,9 @@ def _create_experiment_fn(output_dir):  # pylint: disable=unused-argument
                                         categorical_columns,
                                         continuous_columns)
 
-  os.environ["TF_CONFIG"] = json.dumps({
-      "cluster": {
-          tf.contrib.learn.TaskType.PS: ["fake_ps"] *
-                                        FLAGS.num_parameter_servers
-      },
-      "task": {
-          "index": FLAGS.worker_index
-      }
-  })
-  config = run_config.RunConfig(master=FLAGS.master_grpc_url)
+  config = run_config.RunConfig(master=FLAGS.master_grpc_url,
+                                num_ps_replicas=FLAGS.num_parameter_servers,
+                                task=FLAGS.worker_index)
 
   estimator = tf.contrib.learn.DNNLinearCombinedClassifier(
       model_dir=FLAGS.model_dir,

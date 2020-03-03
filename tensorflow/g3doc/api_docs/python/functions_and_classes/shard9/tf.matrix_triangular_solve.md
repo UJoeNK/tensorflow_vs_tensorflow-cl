@@ -30,12 +30,7 @@ If `adjoint` is `False` then the strictly then the  innermost matrices in
     lower or upper triangular.
 *  <b>`adjoint`</b>: An optional `bool`. Defaults to `False`.
     Boolean indicating whether to solve with `matrix` or its (block-wise)
-             adjoint.
-
-    @compatibility(numpy)
-    Equivalent to np.linalg.triangular_solve
-    @end_compatibility
-
+    adjoint.
 *  <b>`name`</b>: A name for the operation (optional).
 
 ##### Returns:

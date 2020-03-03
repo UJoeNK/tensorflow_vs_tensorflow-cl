@@ -35,7 +35,12 @@ tf_gen_op_libs(
 
 tf_gen_op_wrapper_py(
     name = "set_ops",
-    out = "python/ops/gen_set_ops.py",
+    hidden = [
+        "DenseToDenseSetOperation",
+        "DenseToSparseSetOperation",
+        "SparseToSparseSetOperation",
+        "SetSize",
+    ],
     deps = [":set_ops_op_lib"],
 )
 

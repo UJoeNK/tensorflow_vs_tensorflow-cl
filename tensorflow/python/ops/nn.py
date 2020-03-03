@@ -277,12 +277,6 @@ classes when using one of the sampled loss functions above.
 
 @@compute_accidental_hits
 
-### Quantization ops
-
-@@quantized_relu_x
-@@quantized_max_pool
-@@quantized_avg_pool
-
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -454,7 +448,7 @@ def sigmoid_cross_entropy_with_logits(logits, targets, name=None):
     relu_logits = math_ops.select(cond, logits, zeros)
     neg_abs_logits = math_ops.select(cond, -logits, logits)
     return math_ops.add(relu_logits - logits * targets,
-                        math_ops.log1p(math_ops.exp(neg_abs_logits)),
+                        math_ops.log(1 + math_ops.exp(neg_abs_logits)),
                         name=name)
 
 
@@ -522,7 +516,7 @@ def weighted_cross_entropy_with_logits(logits, targets, pos_weight, name=None):
     log_weight = 1 + (pos_weight - 1) * targets
     return math_ops.add(
         (1 - targets) * logits,
-        log_weight * (math_ops.log1p(math_ops.exp(-math_ops.abs(logits))) +
+        log_weight * (math_ops.log(1 + math_ops.exp(-math_ops.abs(logits))) +
                       nn_ops.relu(-logits)),
         name=name)
 
@@ -795,7 +789,7 @@ def normalize_moments(counts, mean_ss, variance_ss, shift, name=None):
     Two `Tensor` objects: `mean` and `variance`.
   """
   with ops.name_scope(name, "normalize", [counts, mean_ss, variance_ss, shift]):
-    divisor = math_ops.reciprocal(counts, name="divisor")
+    divisor = math_ops.inv(counts, name="divisor")
     if shift is not None:
       shifted_mean = math_ops.mul(mean_ss, divisor, name="shifted_mean")
       mean = math_ops.add(shifted_mean, shift, name="mean")
@@ -904,7 +898,7 @@ def weighted_moments(x, axes, frequency_weights, name=None, keep_dims=False):
         name="sum_of_weights",
         keep_dims=True)
 
-    divisor = math_ops.reciprocal(sum_of_weights, name="inv_weight_sum")
+    divisor = math_ops.inv(sum_of_weights, name="inv_weight_sum")
 
     weighted_mean = math_ops.mul(weighted_input_sum, divisor)
 
@@ -1029,8 +1023,6 @@ def fused_batch_norm(x, scale, offset,  # pylint: disable=invalid-name
     mean = constant_op.constant([])
   if variance is None:
     variance = constant_op.constant([])
-  # Add 1e-12 to epsilon when epsilon <= 1e-5 to prevent CUDNN exception.
-  epsilon = epsilon if epsilon > 1e-5 else epsilon + 1e-12
   y, batch_mean, batch_var, _, _ = gen_nn_ops.fused_batch_norm(
       x,
       scale,
@@ -1273,8 +1265,10 @@ def nce_loss(weights,
   """Computes and returns the noise-contrastive estimation training loss.
 
   See [Noise-contrastive estimation: A new estimation principle for
-  unnormalized statistical models](http://www.jmlr.org/proceedings/papers/v9/gutmann10a/gutmann10a.pdf).
-  Also see our [Candidate Sampling Algorithms Reference](../../extras/candidate_sampling.pdf)
+  unnormalized statistical models]
+  (http://www.jmlr.org/proceedings/papers/v9/gutmann10a/gutmann10a.pdf).
+  Also see our [Candidate Sampling Algorithms Reference]
+  (../../extras/candidate_sampling.pdf)
 
   Note: By default this uses a log-uniform (Zipfian) distribution for sampling,
   so your labels must be sorted in order of decreasing frequency to achieve

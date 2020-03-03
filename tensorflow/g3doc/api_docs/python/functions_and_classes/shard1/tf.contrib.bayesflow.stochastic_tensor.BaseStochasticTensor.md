@@ -22,6 +22,13 @@ Base Class for Tensor-like objects that emit stochastic values.
 
 - - -
 
+#### `tf.contrib.bayesflow.stochastic_tensor.BaseStochasticTensor.input_dict` {#BaseStochasticTensor.input_dict}
+
+
+
+
+- - -
+
 #### `tf.contrib.bayesflow.stochastic_tensor.BaseStochasticTensor.loss(sample_loss)` {#BaseStochasticTensor.loss}
 
 Returns the term to add to the surrogate loss.

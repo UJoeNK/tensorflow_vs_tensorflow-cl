@@ -18,20 +18,9 @@ limitations under the License.
 namespace tensorflow {
 REGISTER5(BinaryOp, CPU, "Add", functor::add, float, Eigen::half, double, int32,
           int64);
-          
-#if TENSORFLOW_USE_SYCL
-#define REGISTER_SYCL_KERNEL(TYPE)                                    \
-  REGISTER_KERNEL_BUILDER(                                            \
-                          Name("Add")                                 \
-                          .Device(DEVICE_SYCL)                        \
-                          .TypeConstraint<TYPE>("T"),                 \
-                          BinaryOp<SYCLDevice, functor::add<TYPE>>);
-TF_CALL_NUMBER_TYPES(REGISTER_SYCL_KERNEL);
-#undef REGISTER_SYCL_KERNEL
-#endif // TENSORFLOW_USE_SYCL
-          
-#if GOOGLE_CUDA
-REGISTER3(BinaryOp, GPU, "Add", functor::add, float, Eigen::half, double);
+//#if GOOGLE_CUDA
+//REGISTER3(BinaryOp, GPU, "Add", functor::add, float, Eigen::half, double);
+REGISTER(BinaryOp, GPU, "Add", functor::add, float);
 
 // A special GPU kernel for int32.
 // TODO(b/25387198): Also enable int32 in device memory. This kernel
@@ -43,6 +32,7 @@ REGISTER_KERNEL_BUILDER(Name("Add")
                             .HostMemory("z")
                             .TypeConstraint<int32>("T"),
                         BinaryOp<CPUDevice, functor::add<int32>>);
-#endif
+//#endif
+
 
 }  // namespace tensorflow

@@ -49,8 +49,9 @@ void Collector::CollectMetricDescriptor(
     metric_descriptor->label_names.push_back(label_name.ToString());
   }
 
-  metric_descriptor->metric_kind = metric_def->kind();
-  metric_descriptor->value_type = metric_def->value_type();
+  // Only cumulative int64 counter is implemented at the moment.
+  metric_descriptor->metric_kind = MetricKind::kCumulative;
+  metric_descriptor->value_type = ValueType::kInt64;
 }
 
 }  // namespace internal

@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #if !GOOGLE_CUDA
-#error This file must only be included when building with Cuda support
+// #error This file must only be included when building with Cuda support
 #endif
 
 #ifndef TENSORFLOW_CORE_KERNELS_POOLING_OPS_COMMON_GPU_H_

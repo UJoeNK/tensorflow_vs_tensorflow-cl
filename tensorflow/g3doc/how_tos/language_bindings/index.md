@@ -1,5 +1,7 @@
 # TensorFlow in other languages
 
+[TOC]
+
 ## Background
 
 This document is intended as a guide for those interested in the creation or
@@ -19,11 +21,11 @@ this [C API] to provide TensorFlow functionality.
 Providing TensorFlow functionality in a programming language can be broken down
 into broad categories:
 
--   *Run a predefined graph*: Given a `GraphDef` (or
+-   *[Run a predefined graph](#run-graph)*: Given a `GraphDef` (or
     `MetaGraphDef`) protocol message, be able to create a session, run queries,
     and get tensor results. This is sufficient for a mobile app or server that
     wants to run inference on a pre-trained model.
--   *Graph construction*: At least one function per defined
+-   *[Graph construction](#create-graph)*: At least one function per defined
     TensorFlow op that adds an operation to the graph. Ideally these functions
     would be automatically generated so they stay in sync as the op definitions
     are modified.
@@ -56,8 +58,8 @@ more functionality in the [C API] is an ongoing project.
 
 Feature                                        | Python                                                      | C
 :--------------------------------------------- | :---------------------------------------------------------- | :--
-Run a predefined Graph                         | `tf.import_graph_def`, `tf.Session`                         | `TF_GraphImportGraphDef`, `TF_NewSession`
-Graph construction with generated op functions | Yes                                                         | Yes (The C API supports client languages that do this)
+Run a predefined Graph                         | `tf.import_graph_def`, `tf.Session`                         | `TF_GraphImportGraphDef`, `TF_NewSessionWithGraph`
+Graph construction with generated op functions | Yes                                                         | Yes[^1]
 Gradients                                      | `tf.gradients`                                              |
 Functions                                      | `tf.python.framework.function.Defun`                        |
 Control Flow                                   | `tf.cond`, `tf.while_loop`                                  |
@@ -65,7 +67,7 @@ Neural Network library                         | `tf.train`, `tf.nn`, `tf.contri
 
 ## Recommended Approach
 
-### Run a predefined graph
+### Run a predefined graph {#run-graph}
 
 A language binding is expected to define the following classes:
 
@@ -83,12 +85,14 @@ A language binding is expected to define the following classes:
 -   `Output`: Represents one of the outputs of an operation in the graph. Has a
     `DataType` (and eventually a shape). May be passed as an input argument to a
     function for adding operations to a graph, or to a `Session`'s `Run()`
-    method to fetch that output as a tensor. Corresponds to a `TF_Output` in the
-    C API.
+    method to fetch that output as a tensor. Corresponds to a `TF_Port` in the C
+    API.
 -   `Session`: Represents a client to a particular instance of the TensorFlow
     runtime. Its main job is to be constructed with a `Graph` and some options
-    and then field calls to `Run()` the graph. Corresponds to a `TF_Session` in
-    the C API.
+    and then field calls to `Run()` the graph. Corresponds to a
+    `TF_SessionWithGraph` in the C API. (Note: `TF_SessionWithGraph` will
+    eventually be renamed `TF_Session` once the deprecated `TF_Session` is
+    removed.)
 -   `Tensor`: Represents an N-dimensional (rectangular) array with elements all
     the same `DataType`. Gets data into and out of a `Session`'s `Run()` call.
     Corresponds to a `TF_Tensor` in the C API.
@@ -96,7 +100,7 @@ A language binding is expected to define the following classes:
     TensorFlow. Corresponds to `TF_DataType` in the C API and often referred to
     as `dtype` in the Python API.
 
-### Graph construction
+### Graph construction {#create-graph}
 
 TensorFlow has many ops, and the list is not static, so we recommend generating
 the functions for adding ops to a graph instead of writing them by individually
@@ -230,6 +234,7 @@ and "while") is not available in languages other than Python. This will be
 updated when the [C API] provides necessary support.
 
 [C API]: https://www.tensorflow.org/code/tensorflow/c/c_api.h
+[^1]: The C API supports client languages that would like to do this
 [`tensorflow/core/ops/ops.pbtxt`]: https://www.tensorflow.org/code/tensorflow/core/ops/ops.pbtxt
 [`tensorflow/python/BUILD`]: https://www.tensorflow.org/code/tensorflow/python/BUILD
 [`tensorflow/core/framework/op.h`]: https://www.tensorflow.org/code/tensorflow/core/framework/op.h

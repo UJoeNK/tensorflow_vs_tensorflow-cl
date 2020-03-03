@@ -25,6 +25,19 @@ import tensorflow as tf
 
 class QueueRunnerTest(tf.test.TestCase):
 
+  def _wait_for_thread_registration(self, coord, N):
+    """Wait for N threads to register with the coordinator.
+
+    This is necessary in some tests that launch threads and
+    then want to join() them in the coordinator.
+
+    Args:
+      coord: A Coordinator object.
+      N: Number of threads to wait for.
+    """
+    while len(coord._registered_threads) < N:
+      time.sleep(0.001)
+
   def testBasic(self):
     with self.test_session() as sess:
       # CountUpTo will raise OUT_OF_RANGE when it reaches the count.
@@ -32,7 +45,7 @@ class QueueRunnerTest(tf.test.TestCase):
       var = tf.Variable(zero64)
       count_up_to = var.count_up_to(3)
       queue = tf.FIFOQueue(10, tf.float32)
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       qr = tf.train.QueueRunner(queue, [count_up_to])
       threads = qr.create_threads(sess)
       for t in threads:
@@ -54,7 +67,7 @@ class QueueRunnerTest(tf.test.TestCase):
       queue = tf.FIFOQueue(10, tf.float32)
       qr = tf.train.QueueRunner(queue, [count_up_to_3, count_up_to_30])
       threads = qr.create_threads(sess)
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       for t in threads:
         t.start()
       for t in threads:
@@ -68,7 +81,7 @@ class QueueRunnerTest(tf.test.TestCase):
       queue = tf.FIFOQueue(10, tf.float32)
       qr = tf.train.QueueRunner(queue, ["i fail", "so fail"])
       threads = qr.create_threads(sess)
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       for t in threads:
         t.start()
       for t in threads:
@@ -113,7 +126,7 @@ class QueueRunnerTest(tf.test.TestCase):
       var = tf.Variable(zero64)
       count_up_to = var.count_up_to(3)
       queue = tf.FIFOQueue(10, tf.float32)
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       qr = tf.train.QueueRunner(queue, [count_up_to])
       # As the coordinator to stop.  The queue runner should
       # finish immediately.
@@ -122,6 +135,7 @@ class QueueRunnerTest(tf.test.TestCase):
       threads = qr.create_threads(sess, coord)
       for t in threads:
         t.start()
+      self._wait_for_thread_registration(coord, len(threads))
       coord.join()
       self.assertEqual(0, len(qr.exceptions_raised))
       # The variable should be 0.
@@ -135,6 +149,7 @@ class QueueRunnerTest(tf.test.TestCase):
       threads = qr.create_threads(sess, coord)
       for t in threads:
         t.start()
+      self._wait_for_thread_registration(coord, len(threads))
       # The exception should be re-raised when joining.
       with self.assertRaisesRegexp(ValueError, "Operation not in the graph"):
         coord.join()
@@ -147,7 +162,9 @@ class QueueRunnerTest(tf.test.TestCase):
       dequeue = queue.dequeue()
       qr = tf.train.QueueRunner(queue, [enqueue])
       coord = tf.train.Coordinator()
-      qr.create_threads(sess, coord, start=True)
+      threads = qr.create_threads(sess, coord, start=True)
+      # Wait for the threads to have registered with the coordinator.
+      self._wait_for_thread_registration(coord, len(threads))
       # Dequeue one element and then request stop.
       dequeue.op.run()
       time.sleep(0.02)
@@ -156,21 +173,6 @@ class QueueRunnerTest(tf.test.TestCase):
       # the queue to be closed and the enqueue to terminate.
       coord.join(stop_grace_period_secs=0.05)
 
-  def testMultipleSessions(self):
-    with self.test_session() as sess:
-      with tf.Session() as other_sess:
-        zero64 = tf.constant(0, dtype=tf.int64)
-        var = tf.Variable(zero64)
-        count_up_to = var.count_up_to(3)
-        queue = tf.FIFOQueue(10, tf.float32)
-        tf.global_variables_initializer().run()
-        coord = tf.train.Coordinator()
-        qr = tf.train.QueueRunner(queue, [count_up_to])
-        # NOTE that this test does not actually start the threads.
-        threads = qr.create_threads(sess, coord=coord)
-        other_threads = qr.create_threads(other_sess, coord=coord)
-        self.assertEqual(len(threads), len(other_threads))
-
   def testIgnoreMultiStarts(self):
     with self.test_session() as sess:
       # CountUpTo will raise OUT_OF_RANGE when it reaches the count.
@@ -178,7 +180,7 @@ class QueueRunnerTest(tf.test.TestCase):
       var = tf.Variable(zero64)
       count_up_to = var.count_up_to(3)
       queue = tf.FIFOQueue(10, tf.float32)
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       coord = tf.train.Coordinator()
       qr = tf.train.QueueRunner(queue, [count_up_to])
       threads = []
@@ -194,7 +196,7 @@ class QueueRunnerTest(tf.test.TestCase):
       var = tf.Variable(zero64)
       count_up_to = var.count_up_to(3)
       queue = tf.FIFOQueue(10, tf.float32)
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       qr = tf.train.QueueRunner(queue, [count_up_to, "bad op"])
       threads = qr.create_threads(sess, start=True)
       for t in threads:
@@ -225,7 +227,7 @@ class QueueRunnerTest(tf.test.TestCase):
     var = tf.Variable(zero64)
     count_up_to = var.count_up_to(3)
     queue = tf.FIFOQueue(10, tf.float32)
-    init_op = tf.global_variables_initializer()
+    init_op = tf.initialize_all_variables()
     qr = tf.train.QueueRunner(queue, [count_up_to])
     tf.train.add_queue_runner(qr)
     with self.test_session() as sess:
@@ -245,7 +247,7 @@ class QueueRunnerTest(tf.test.TestCase):
       var = tf.Variable(zero64)
       count_up_to = var.count_up_to(3)
       queue = tf.FIFOQueue(10, tf.float32)
-      init_op = tf.global_variables_initializer()
+      init_op = tf.initialize_all_variables()
       qr = tf.train.QueueRunner(queue, [count_up_to])
       tf.train.add_queue_runner(qr)
     with self.test_session(graph=graph) as sess:

@@ -46,6 +46,25 @@ namespace functor {
 using random::PhiloxRandom;
 using random::SingleSampleAdapter;
 
+// Sample a truncated normal random variable, with mean, stddev, minval, and
+// maxval parameters for each batch. Uses two rejection sampling algorithms
+// described in http://rd.springer.com/article/10.1007/BF00143942.
+//
+// Either minval may be -infinity, or maxval may be +infinity. If the interval
+// (minval, maxval) is empty, the result is NaN. Large intervals which include
+// both tails may have reduced accuracy.
+template <typename Device, typename T>
+struct TruncatedNormalFunctor {
+  void operator()(OpKernelContext* ctx, const Device& d, int64 num_batches,
+                  int64 samples_per_batch, int64 num_elements,
+                  typename TTypes<T>::ConstFlat means,
+                  typename TTypes<T>::ConstFlat stddevs,
+                  typename TTypes<T>::ConstFlat minvals,
+                  typename TTypes<T>::ConstFlat maxvals,
+                  const random::PhiloxRandom& gen,
+                  typename TTypes<T>::Flat output);
+};
+
 template <typename T>
 struct TruncatedNormalFunctor<CPUDevice, T> {
   static const int kMaxIterations = 100;
@@ -77,8 +96,8 @@ struct TruncatedNormalFunctor<CPUDevice, T> {
 
       // Vectorized intermediate calculations for uniform rejection sampling.
       // We always generate at most 4 samples.
-      Eigen::array<T, 4> z;
-      Eigen::array<T, 4> g;
+      tensorflow::random::Array<T, 4> z;
+      tensorflow::random::Array<T, 4> g;
 
       for (int64 b = start_batch; b < limit_batch; ++b) {
         // We are passed a flat array for each of the parameter tensors.
@@ -126,7 +145,13 @@ struct TruncatedNormalFunctor<CPUDevice, T> {
         if (diff < cutoff) {
           // Sample from a uniform distribution on [normMin, normMax].
 
-          const T plusFactor = (normMin < T(0)) ? T(0) : normMin * normMin;
+          T plusFactor;
+          if (normMin < T(0)) {
+            // normMax > 0 because it is flipped otherwise.
+            plusFactor = T(0);
+          } else {
+            plusFactor = normMin * normMin;
+          }
 
           while (sample < limit_sample) {
             const auto rand = dist(&gen_copy);
@@ -369,22 +394,5 @@ TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
 
 #undef REGISTER
-
-#if GOOGLE_CUDA
-
-#define REGISTER(TYPE)                                         \
-  REGISTER_KERNEL_BUILDER(Name("ParameterizedTruncatedNormal") \
-                              .Device(DEVICE_GPU)              \
-                              .HostMemory("shape")             \
-                              .TypeConstraint<TYPE>("dtype"),  \
-                          ParameterizedTruncatedNormalOp<GPUDevice, TYPE>)
-
-TF_CALL_half(REGISTER);
-TF_CALL_float(REGISTER);
-TF_CALL_double(REGISTER);
-
-#undef REGISTER
-
-#endif  // GOOGLE_CUDA
 
 }  // end namespace tensorflow

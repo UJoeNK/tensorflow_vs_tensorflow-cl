@@ -176,12 +176,11 @@ TF_CALL_GPU_NUMBER_TYPES(DECLARE_GPU_SPECS);
 }  // namespace functor
 
 // Registration of the GPU implementations.
-#define REGISTER_GPU_KERNEL(T)                                    \
-  REGISTER_KERNEL_BUILDER(Name("Pad")                             \
-                              .Device(DEVICE_GPU)                 \
-                              .TypeConstraint<T>("T")             \
-                              .TypeConstraint<int32>("Tpaddings") \
-                              .HostMemory("paddings"),            \
+#define REGISTER_GPU_KERNEL(T)                         \
+  REGISTER_KERNEL_BUILDER(Name("Pad")                  \
+                              .Device(DEVICE_GPU)      \
+                              .TypeConstraint<T>("T")  \
+                              .HostMemory("paddings"), \
                           PadOp<GPUDevice, T>)
 
 TF_CALL_GPU_NUMBER_TYPES(REGISTER_GPU_KERNEL);
@@ -192,7 +191,6 @@ TF_CALL_GPU_NUMBER_TYPES(REGISTER_GPU_KERNEL);
 REGISTER_KERNEL_BUILDER(Name("Pad")
                             .Device(DEVICE_GPU)
                             .TypeConstraint<int32>("T")
-                            .TypeConstraint<int32>("Tpaddings")
                             .HostMemory("input")
                             .HostMemory("paddings")
                             .HostMemory("output"),

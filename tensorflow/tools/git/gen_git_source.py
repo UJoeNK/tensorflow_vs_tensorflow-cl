@@ -112,14 +112,9 @@ def configure(src_base_path, debug=False):
     if src is None:
       open(os.path.join(gen_path, target), "w").write("")
     else:
-      try:
-        # In python 3.5, symlink function exists even on Windows. But requires
-        # Windows Admin privileges, otherwise an OSError will be thrown.
-        if hasattr(os, 'symlink'):
-          os.symlink(src, os.path.join(gen_path, target))
-        else:
-          shutil.copy2(src, os.path.join(gen_path, target))
-      except OSError:
+      if hasattr(os, 'symlink'):
+        os.symlink(src, os.path.join(gen_path, target))
+      else:
         shutil.copy2(src, os.path.join(gen_path, target))
 
   json.dump(spec, open(os.path.join(gen_path, "spec.json"), "w"), indent=2)
@@ -147,10 +142,8 @@ def get_git_version(git_base_path):
   """
   unknown_label = b"unknown"
   try:
-    val = bytes(subprocess.check_output([
-        "git", str("--git-dir=%s/.git" % git_base_path),
-        str("--work-tree=" + git_base_path), "describe", "--long", "--dirty", "--tags"
-    ]).strip())
+    val = subprocess.check_output(["git", "-C", git_base_path, "describe",
+                                   "--long", "--dirty", "--tags"]).strip()
     return val if val else unknown_label
   except subprocess.CalledProcessError:
     return unknown_label
@@ -201,7 +194,7 @@ def generate(arglist):
   data = json.load(open(spec))
   git_version = None
   if not data["git"]:
-    git_version = b"unknown"
+    git_version = "unknown"
   else:
     old_branch = data["branch"]
     new_branch = parse_branch_ref(head_symlink)

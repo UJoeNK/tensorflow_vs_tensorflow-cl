@@ -50,6 +50,7 @@ std::unordered_map<string, FactoryItem>& device_factories() {
 
 void DeviceFactory::Register(const string& device_type, DeviceFactory* factory,
                              int priority) {
+  // std::cout << "DeviceFactory::Registry devicetype " << device_type << std::endl;
   mutex_lock l(*get_device_factory_lock());
   std::unique_ptr<DeviceFactory> factory_ptr(factory);
   std::unordered_map<string, FactoryItem>& factories = device_factories();
@@ -72,13 +73,14 @@ DeviceFactory* DeviceFactory::GetFactory(const string& device_type) {
   if (it == device_factories().end()) {
     return nullptr;
   }
+  // std::cout << " devicefactory::getfactory found a factory" << std::endl;
   return it->second.factory.get();
 }
 
 Status DeviceFactory::AddDevices(const SessionOptions& options,
                                  const string& name_prefix,
                                  std::vector<Device*>* devices) {
-  // CPU first. A CPU device is required.
+  // CPU first.
   auto cpu_factory = GetFactory("CPU");
   if (!cpu_factory) {
     return errors::NotFound(
@@ -90,11 +92,20 @@ Status DeviceFactory::AddDevices(const SessionOptions& options,
     return errors::NotFound("No CPU devices are available in this process");
   }
 
-  // Then the rest (including GPU).
+  // Then GPU.
+  auto gpu_factory = GetFactory("GPU");
+  // std::cout << "DeviceFactory::AddDevices GPU" << std::endl;
+  if (gpu_factory) {
+    // std::cout << " we have a gpu factory" << std::endl;
+    TF_RETURN_IF_ERROR(
+        gpu_factory->CreateDevices(options, name_prefix, devices));
+  }
+
+  // Then the rest.
   mutex_lock l(*get_device_factory_lock());
   for (auto& p : device_factories()) {
     auto factory = p.second.factory.get();
-    if (factory != cpu_factory) {
+    if (factory != cpu_factory && factory != gpu_factory) {
       TF_RETURN_IF_ERROR(factory->CreateDevices(options, name_prefix, devices));
     }
   }

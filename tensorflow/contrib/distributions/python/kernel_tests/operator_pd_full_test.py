@@ -32,7 +32,7 @@ class OperatorPDFullTest(tf.test.TestCase):
 
   def _random_positive_def_array(self, *shape):
     matrix = self._rng.rand(*shape)
-    return tf.matmul(matrix, matrix, adjoint_b=True).eval()
+    return tf.batch_matmul(matrix, matrix, adj_y=True).eval()
 
   def testPositiveDefiniteMatrixDoesntRaise(self):
     with self.test_session():

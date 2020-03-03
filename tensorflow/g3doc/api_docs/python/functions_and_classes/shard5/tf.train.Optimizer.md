@@ -141,8 +141,7 @@ given variable.
 
 ##### Returns:
 
-  A list of (gradient, variable) pairs. Variable is always present, but
-  gradient can be `None`.
+  A list of (gradient, variable) pairs.
 
 ##### Raises:
 

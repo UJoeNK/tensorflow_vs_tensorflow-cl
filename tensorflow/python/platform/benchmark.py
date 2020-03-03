@@ -66,11 +66,14 @@ def _global_report_benchmark(
     if not isinstance(extras, dict):
       raise TypeError("extras must be a dict")
 
-    logging.info("Benchmark [%s] iters: %d, wall_time: %g, cpu_time: %g,"
-                 "throughput: %g %s", name, iters if iters is not None else -1,
-                 wall_time if wall_time is not None else -1, cpu_time if
-                 cpu_time is not None else -1, throughput if
-                 throughput is not None else -1, str(extras) if extras else "")
+    logging.info(
+        "Benchmark [%s] iters: %d, wall_time: %g, cpu_time: %g,"
+        "throughput: %g" %
+        (name,
+         iters if iters is not None else -1,
+         wall_time if wall_time is not None else -1,
+         cpu_time if cpu_time is not None else -1,
+         throughput if throughput is not None else -1))
 
   test_env = os.environ.get(TEST_REPORTER_TEST_ENV, None)
   if test_env is None:
@@ -198,8 +201,7 @@ class TensorFlowBenchmark(Benchmark):
                        min_iters=10,
                        store_trace=False,
                        name=None,
-                       extras=None,
-                       mbs=0):
+                       extras=None):
     """Run an op or tensor in the given session.  Report the results.
 
     Args:
@@ -217,8 +219,6 @@ class TensorFlowBenchmark(Benchmark):
         Otherwise it is inferred from the top-level method name.
       extras: (optional) Dict mapping string keys to additional benchmark info.
         Values may be either floats or values that are convertible to strings.
-      mbs: (optional) The number of megabytes moved by this op, used to
-        calculate the ops throughput.
 
     Returns:
       A `dict` containing the key-value pairs that were passed to
@@ -256,13 +256,10 @@ class TensorFlowBenchmark(Benchmark):
 
     median_delta = _median(deltas)
 
-    benchmark_values = {
-        "iters": min_iters,
-        "wall_time": median_delta,
-        "extras": extras,
-        "name": name,
-        "throughput": mbs / median_delta
-    }
+    benchmark_values = {"iters": min_iters,
+                        "wall_time": median_delta,
+                        "extras": extras,
+                        "name": name}
     self.report_benchmark(**benchmark_values)
     return benchmark_values
 

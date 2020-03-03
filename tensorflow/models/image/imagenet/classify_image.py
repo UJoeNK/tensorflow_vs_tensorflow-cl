@@ -223,5 +223,6 @@ if __name__ == '__main__':
       default=5,
       help='Display this many predictions.'
   )
-  FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  FLAGS = parser.parse_args()
+
+  tf.app.run()

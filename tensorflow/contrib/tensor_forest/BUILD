@@ -67,6 +67,7 @@ py_library(
 tf_custom_op_library(
     name = "data/_data_ops.so",
     srcs = [
+        "data/sparse_values_to_indices.cc",
         "data/string_to_float_op.cc",
     ],
     deps = [
@@ -307,6 +308,20 @@ cc_test(
         "//tensorflow/core:test_main",
         "//tensorflow/core:testlib",
         "//third_party/eigen3",
+    ],
+)
+
+cc_test(
+    name = "sparse_values_to_indices_test",
+    size = "small",
+    srcs = ["data/sparse_values_to_indices_test.cc"],
+    deps = [
+        ":all_ops",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:test",
+        "//tensorflow/core:test_main",
+        "//tensorflow/core:testlib",
+        "//tensorflow/core/kernels:ops_testutil",
     ],
 )
 

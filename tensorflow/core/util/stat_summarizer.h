@@ -111,11 +111,8 @@ class StatSummarizer {
   // Adds another run's StepStats output to the aggregate counts.
   void ProcessStepStats(const StepStats& step_stats);
 
-  // Returns a string detailing the accumulated runtime stats in a tab-separated
-  // format which can be pasted into a spreadsheet for further analysis.
-  std::string GetOutputString() const;
-
-  // Prints the string returned by GetOutputString().
+  // Prints all the accumulated runtime stats in a tab-separated format which
+  // can be pasted into a spreadsheet for further analysis.
   void PrintStepStats() const;
 
   // Prints the output tensor sizes and types for each node.

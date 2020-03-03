@@ -26,7 +26,3 @@ garbage result.
 
   A `Tensor`. Has the same type as `input`. Shape is `[..., M, M]`.
 
-  @compatibility(numpy)
-  Equivalent to np.linalg.inv
-  @end_compatibility
-

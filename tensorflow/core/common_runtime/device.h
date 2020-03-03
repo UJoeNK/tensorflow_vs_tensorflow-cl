@@ -141,13 +141,14 @@ class Device : public DeviceBase {
   // Assembles the parameter components into a complete DeviceAttributes value.
   static DeviceAttributes BuildDeviceAttributes(
       const string& name, DeviceType device, Bytes memory_limit,
-      const DeviceLocality& locality, const string& physical_device_desc);
+      BusAdjacency bus_adjacency, const string& physical_device_desc);
 
-  static DeviceAttributes BuildDeviceAttributes(
-      const string& name, DeviceType device, Bytes memory_limit,
-      const DeviceLocality& locality) {
+  static DeviceAttributes BuildDeviceAttributes(const string& name,
+                                                DeviceType device,
+                                                Bytes memory_limit,
+                                                BusAdjacency bus_adjacency) {
     // Pass in an empty string as physical device name.
-    return BuildDeviceAttributes(name, device, memory_limit, locality, "");
+    return BuildDeviceAttributes(name, device, memory_limit, bus_adjacency, "");
   }
 
  private:

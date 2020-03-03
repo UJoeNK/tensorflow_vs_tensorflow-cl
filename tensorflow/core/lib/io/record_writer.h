@@ -60,11 +60,22 @@ class RecordWriter {
   // Flushes any buffered data held by underlying containers of the
   // RecordWriter to the WritableFile. Does *not* flush the
   // WritableFile.
-  Status Flush();
+  Status Flush() {
+#if !defined(IS_SLIM_BUILD)
+    if (zlib_output_buffer_) {
+      return zlib_output_buffer_->Flush();
+    }
+#endif  // IS_SLIM_BUILD
+
+    return Status::OK();
+  }
 
  private:
-  WritableFile* dest_;
+  WritableFile* const dest_;
   RecordWriterOptions options_;
+#if !defined(IS_SLIM_BUILD)
+  std::unique_ptr<ZlibOutputBuffer> zlib_output_buffer_;
+#endif  // IS_SLIM_BUILD
 
   TF_DISALLOW_COPY_AND_ASSIGN(RecordWriter);
 };

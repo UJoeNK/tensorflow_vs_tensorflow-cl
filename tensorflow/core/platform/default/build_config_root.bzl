@@ -4,6 +4,3 @@
 
 def tf_cuda_tests_tags():
   return ["local"]
-
-def tf_sycl_tests_tags():
-  return ["local"]

@@ -9,36 +9,42 @@ cc_library(
             "*.cc",
             "lib/*.cc",
             "platform/default/*.cc",
+            "cl/*.cc",
         ],
         exclude = [
             "**/*_test.cc",
+            "dso_loader.cc",
         ],
-    ) + if_cuda(
-        glob([
-            "cuda/*.cc",
-        ]),
+    # ) + if_cuda(
+    #     glob([
+    #         "cuda/*.cc",
+    #     ]),
     ),
     hdrs = glob([
         "*.h",
         "cuda/*.h",
+        "cl/*.h",
         "lib/*.h",
         "lib/gtl/*.h",
         "platform/**/*.h",
     ]),
-    data = [
-        "//tensorflow/core:cuda",
-        "@local_config_cuda//cuda:cublas",
-        "@local_config_cuda//cuda:cudnn",
-        "@local_config_cuda//cuda:cufft",
-        "@local_config_cuda//cuda:curand",
+    copts = [
+        '-Ithird_party/coriander/include/cocl',
+        '-Ithird_party/coriander/include/cocl/proxy_includes',
+        '-Ithird_party/coriander/src/EasyCL',
+        '-Ithird_party/coriander/src/EasyCL/third_party/clew/include',
     ],
     linkopts = [
         "-ldl",
+        '-lcocl',
+        '-lclblast',
+        '-leasycl',
+        '-lclew',
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//third_party:cocl",
         "//tensorflow/core:lib",
-        "@local_config_cuda//cuda:cuda_headers",
     ],
     alwayslink = 1,
 )

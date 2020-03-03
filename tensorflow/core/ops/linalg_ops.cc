@@ -206,10 +206,6 @@ garbage result.
 
 input: Shape is `[..., M, M]`.
 output: Shape is `[..., M, M]`.
-
-@compatibility(numpy)
-Equivalent to np.linalg.inv
-@end_compatibility
 )doc");
 
 REGISTER_OP("Cholesky")
@@ -316,7 +312,7 @@ REGISTER_OP("MatrixSolve")
     .Input("rhs: T")
     .Output("output: T")
     .Attr("adjoint: bool = False")
-    .Attr("T: {double, float, complex64, complex128}")
+    .Attr("T: {double, float}")
     .SetShapeFn([](InferenceContext* c) {
       return MatrixSolveShapeFn(c, true /* square (*/);
     })
@@ -372,10 +368,6 @@ lower: Boolean indicating whether the innermost matrices in `matrix` are
        lower or upper triangular.
 adjoint: Boolean indicating whether to solve with `matrix` or its (block-wise)
          adjoint.
-
-@compatibility(numpy)
-Equivalent to np.linalg.triangular_solve
-@end_compatibility
 )doc");
 
 REGISTER_OP("MatrixSolveLs")
@@ -429,10 +421,6 @@ matrix: Shape is `[..., M, N]`.
 rhs: Shape is `[..., M, K]`.
 output: Shape is `[..., N, K]`.
 l2_regularizer: Scalar tensor.
-
-@compatibility(numpy)
-Equivalent to np.linalg.lstsq
-@end_compatibility
 )doc");
 
 REGISTER_OP("Svd")

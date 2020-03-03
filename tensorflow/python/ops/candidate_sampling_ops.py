@@ -13,12 +13,14 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Wrappers for candidate sampling operations."""
+"""Wrappers for primitive Neural Net (NN) Operations."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from tensorflow.python.framework import common_shapes
+from tensorflow.python.framework import ops
 from tensorflow.python.framework import random_seed
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_candidate_sampling_ops
@@ -362,3 +364,15 @@ def compute_accidental_hits(true_classes, sampled_candidates, num_true,
   return gen_candidate_sampling_ops._compute_accidental_hits(
       true_classes, sampled_candidates, num_true, seed=seed1, seed2=seed2,
       name=name)
+
+
+ops.RegisterShape("AllCandidateSampler")(common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("FixedUnigramCandidateSampler")(
+    common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("LearnedUnigramCandidateSampler")(
+    common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("LogUniformCandidateSampler")(common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("ThreadUnsafeUnigramCandidateSampler")(
+    common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("UniformCandidateSampler")(common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("ComputeAccidentalHits")(common_shapes.call_cpp_shape_fn)

@@ -87,14 +87,13 @@ class SaveRestoreShardedTest(tf.test.TestCase):
       with gfile.FastGFile(ignored_asset, "w") as f:
         f.write("additional data here")
 
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
 
       # Run an export.
       save = tf.train.Saver({"v0": v0,
                              "v1": v1},
                             restore_sequentially=True,
-                            sharded=sharded,
-                            write_version=tf.train.SaverDef.V1)
+                            sharded=sharded)
       export = exporter.Exporter(save)
       compare_def = tf.get_default_graph().as_graph_def()
       export.init(compare_def,

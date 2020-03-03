@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 #define EIGEN_USE_GPU
 
@@ -76,7 +76,8 @@ struct FillFunctor<GPUDevice, T> {
 };
 
 #define DEFINE_FILL_GPU(T) template struct FillFunctor<GPUDevice, T>;
-TF_CALL_REAL_NUMBER_TYPES(DEFINE_FILL_GPU);
+// TF_CALL_REAL_NUMBER_TYPES(DEFINE_FILL_GPU);
+TF_CALL_GPU_NUMBER_TYPES(DEFINE_FILL_GPU);
 DEFINE_FILL_GPU(bool);
 #undef DEFINE_FILL_GPU
 
@@ -89,16 +90,14 @@ struct SetZeroFunctor<GPUDevice, T> {
 };
 
 #define DEFINE_SETZERO_GPU(T) template struct SetZeroFunctor<GPUDevice, T>
-DEFINE_SETZERO_GPU(bool);
-DEFINE_SETZERO_GPU(Eigen::half);
+// DEFINE_SETZERO_GPU(Eigen::half);
 DEFINE_SETZERO_GPU(float);
-DEFINE_SETZERO_GPU(double);
-DEFINE_SETZERO_GPU(complex64);
-DEFINE_SETZERO_GPU(complex128);
-DEFINE_SETZERO_GPU(int64);
+// DEFINE_SETZERO_GPU(double);
+// DEFINE_SETZERO_GPU(complex64);
+// DEFINE_SETZERO_GPU(complex128);
 #undef DEFINE_SETZERO_GPU
 
 }  // end namespace functor
 }  // end namespace tensorflow
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA

@@ -13,6 +13,13 @@ load(
     "if_android",
 )
 
+# TODO(andrewharp): Make this an android_library or java_library.
+filegroup(
+    name = "android_tensorflow_inference_java_srcs",
+    srcs = glob(["java/**/*.java"]),
+    visibility = ["//visibility:public"],
+)
+
 exports_files([
     "jni/version_script.lds",
 ])
@@ -20,8 +27,8 @@ exports_files([
 filegroup(
     name = "android_tensorflow_inference_jni_srcs",
     srcs = glob([
-        "**/*.cc",
-        "**/*.h",
+        "jni/**/*.cc",
+        "jni/**/*.h",
     ]),
     visibility = ["//visibility:public"],
 )
@@ -49,45 +56,4 @@ filegroup(
         ],
     ),
     visibility = ["//tensorflow:__subpackages__"],
-)
-
-# JAR with Java bindings to TF.
-android_library(
-    name = "android_tensorflow_inference_java",
-    srcs = glob(["java/**/*.java"]),
-    tags = [
-        "manual",
-        "notap",
-    ],
-)
-
-# Build the native .so.
-# bazel build //tensorflow/contrib/android:libtensorflow.so \
-#   --crosstool_top=//external:android/crosstool \
-#   --host_crosstool_top=@bazel_tools//tools/cpp:toolchain \
-#   --cpu=armeabi-v7a
-LINKER_SCRIPT = "//tensorflow/contrib/android:jni/version_script.lds"
-
-cc_binary(
-    name = "libtensorflow_inference.so",
-    srcs = [],
-    copts = tf_copts(),
-    linkopts = [
-        "-landroid",
-        "-z defs",
-        "-s",
-        "-Wl,--version-script",  # This line must be directly followed by LINKER_SCRIPT.
-        LINKER_SCRIPT,
-    ],
-    linkshared = 1,
-    linkstatic = 1,
-    tags = [
-        "manual",
-        "notap",
-    ],
-    deps = [
-        ":android_tensorflow_inference_jni",
-        "//tensorflow/core:android_tensorflow_lib",
-        LINKER_SCRIPT,
-    ],
 )

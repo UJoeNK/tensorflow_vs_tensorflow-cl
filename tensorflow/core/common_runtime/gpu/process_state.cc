@@ -29,7 +29,6 @@ limitations under the License.
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/stream_executor.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/env_var.h"
 
 // If these flags need to be runtime configurable, consider adding
 // options to ConfigProto.
@@ -87,7 +86,7 @@ ProcessState::MemDesc ProcessState::PtrType(const void* ptr) {
 
 Allocator* ProcessState::GetGPUAllocator(const GPUOptions& options, int gpu_id,
                                          size_t total_bytes) {
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
   const string& allocator_type = options.allocator_type();
   mutex_lock lock(mu_);
   gpu::Platform* gpu_platform = GPUMachineManager();
@@ -126,7 +125,7 @@ Allocator* ProcessState::GetGPUAllocator(const GPUOptions& options, int gpu_id,
     gpu::StreamExecutor* se =
         gpu_platform->ExecutorForDevice(gpu_id).ValueOrDie();
     int bus_id = se->GetDeviceDescription().numa_node();
-    if (bus_id >= 0 && bus_id < static_cast<int64>(gpu_visitors_.size())) {
+    if (bus_id < static_cast<int64>(gpu_visitors_.size())) {
       for (auto v : gpu_visitors_[bus_id]) {
         gpu_allocators_[gpu_id]->AddAllocVisitor(v);
       }
@@ -145,10 +144,10 @@ Allocator* ProcessState::GetGPUAllocator(const GPUOptions& options, int gpu_id,
   }
   if (FLAGS_brain_gpu_record_mem_types) return gpu_al_[gpu_id];
   return gpu_allocators_[gpu_id];
-#else
-  LOG(FATAL) << "GPUAllocator unavailable. Not compiled with --config=cuda.";
-  return nullptr;
-#endif  // GOOGLE_CUDA
+// #else
+//   LOG(FATAL) << "GPUAllocator unavailable. Not compiled with --config=cuda.";
+//   return nullptr;
+// #endif  // GOOGLE_CUDA
 }
 
 Allocator* ProcessState::GetCPUAllocator(int numa_node) {
@@ -204,17 +203,8 @@ Allocator* ProcessState::GetCUDAHostAllocator(int numa_node) {
     Allocator* allocator = nullptr;
     static constexpr bool kCudaHostMemoryUseBFC = true;
     if (kCudaHostMemoryUseBFC) {
-      // TODO(zheng-xq): evaluate whether 64GB by default is the best choice.
-      int64 cuda_host_mem_limit_in_mb = -1;
-      Status status = ReadInt64FromEnvVar("TF_CUDA_HOST_MEM_LIMIT_IN_MB",
-                                          1LL << 16 /*64GB max by default*/,
-                                          &cuda_host_mem_limit_in_mb);
-      if (!status.ok()) {
-        LOG(ERROR) << "GetCUDAHostAllocator: " << status.error_message();
-      }
-      int64 cuda_host_mem_limit = cuda_host_mem_limit_in_mb * (1LL << 20);
       allocator =
-          new BFCAllocator(new CUDAHostAllocator(se), cuda_host_mem_limit,
+          new BFCAllocator(new CUDAHostAllocator(se), 1LL << 36 /*64GB max*/,
                            true /*allow_growth*/, "cuda_host_bfc" /*name*/);
     } else {
       allocator = new PoolAllocator(
@@ -242,7 +232,7 @@ Allocator* ProcessState::GetCUDAHostAllocator(int numa_node) {
 }
 
 void ProcessState::AddGPUAllocVisitor(int bus_id, AllocVisitor visitor) {
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
   mutex_lock lock(mu_);
   gpu::Platform* gpu_platform = GPUMachineManager();
   for (int gpu_id = 0; gpu_id < static_cast<int64>(gpu_allocators_.size());
@@ -250,7 +240,7 @@ void ProcessState::AddGPUAllocVisitor(int bus_id, AllocVisitor visitor) {
     gpu::StreamExecutor* se =
         gpu_platform->ExecutorForDevice(gpu_id).ValueOrDie();
     if (gpu_allocators_[gpu_id] &&
-        (se->GetDeviceDescription().numa_node() + 1) == bus_id) {
+        se->GetDeviceDescription().numa_node() == bus_id) {
       gpu_allocators_[gpu_id]->AddAllocVisitor(visitor);
     }
   }
@@ -258,7 +248,7 @@ void ProcessState::AddGPUAllocVisitor(int bus_id, AllocVisitor visitor) {
     gpu_visitors_.push_back(std::vector<AllocVisitor>());
   }
   gpu_visitors_[bus_id].push_back(visitor);
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 }
 
 }  // namespace tensorflow

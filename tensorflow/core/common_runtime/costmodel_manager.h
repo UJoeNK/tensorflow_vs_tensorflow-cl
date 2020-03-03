@@ -41,8 +41,6 @@ class CostModelManager {
 
   CostModel* FindOrCreateCostModel(const Graph* graph);
 
-  bool RemoveCostModelForGraph(const Graph* graph);
-
   Status AddToCostGraphDef(const Graph* graph, CostGraphDef* cost_graph);
 
  private:

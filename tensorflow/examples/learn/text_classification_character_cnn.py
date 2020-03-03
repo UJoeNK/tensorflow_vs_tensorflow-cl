@@ -29,7 +29,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import sys
 
 import numpy as np
 import pandas
@@ -48,15 +47,15 @@ POOLING_WINDOW = 4
 POOLING_STRIDE = 2
 
 
-def char_cnn_model(features, target):
+def char_cnn_model(x, y):
   """Character level convolutional neural network model to predict classes."""
-  target = tf.one_hot(target, 15, 1, 0)
-  byte_list = tf.reshape(tf.one_hot(features, 256, 1, 0),
+  y = tf.one_hot(y, 15, 1, 0)
+  byte_list = tf.reshape(learn.ops.one_hot_matrix(x, 256),
                          [-1, MAX_DOCUMENT_LENGTH, 256, 1])
   with tf.variable_scope('CNN_Layer1'):
     # Apply Convolution filtering on input sequence.
-    conv1 = tf.contrib.layers.convolution2d(
-        byte_list, N_FILTERS, FILTER_SHAPE1, padding='VALID')
+    conv1 = tf.contrib.layers.convolution2d(byte_list, N_FILTERS,
+                             FILTER_SHAPE1, padding='VALID')
     # Add a RELU for non linearity.
     conv1 = tf.nn.relu(conv1)
     # Max pooling across output of Convolution+Relu.
@@ -66,22 +65,20 @@ def char_cnn_model(features, target):
     pool1 = tf.transpose(pool1, [0, 1, 3, 2])
   with tf.variable_scope('CNN_Layer2'):
     # Second level of convolution filtering.
-    conv2 = tf.contrib.layers.convolution2d(
-        pool1, N_FILTERS, FILTER_SHAPE2, padding='VALID')
+    conv2 = tf.contrib.layers.convolution2d(pool1, N_FILTERS,
+                                            FILTER_SHAPE2,
+                                            padding='VALID')
     # Max across each filter to get useful features for classification.
     pool2 = tf.squeeze(tf.reduce_max(conv2, 1), squeeze_dims=[1])
 
   # Apply regular WX + B and classification.
-  logits = tf.contrib.layers.fully_connected(pool2, 15, activation_fn=None)
-  loss = tf.contrib.losses.softmax_cross_entropy(logits, target)
+  prediction, loss = learn.models.logistic_regression(pool2, y)
 
   train_op = tf.contrib.layers.optimize_loss(
       loss, tf.contrib.framework.get_global_step(),
       optimizer='Adam', learning_rate=0.01)
 
-  return (
-      {'class': tf.argmax(logits, 1), 'prob': tf.nn.softmax(logits)},
-      loss, train_op)
+  return {'class': tf.argmax(prediction, 1), 'prob': prediction}, loss, train_op
 
 
 def main(unused_argv):
@@ -117,5 +114,6 @@ if __name__ == '__main__':
       help='Test the example code with fake data.',
       action='store_true'
   )
-  FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  FLAGS = parser.parse_args()
+
+  tf.app.run()

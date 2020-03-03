@@ -120,13 +120,12 @@ class Multinomial(distribution.Distribution):
       logits: Floating point tensor representing the log-odds of a
         positive event with shape broadcastable to `[N1,..., Nm, k], m >= 0`,
         and the same dtype as `n`. Defines this as a batch of `N1 x ... x Nm`
-        different `k` class Multinomial distributions. Only one of `logits` or
-        `p` should be passed in.
+        different `k` class Multinomial distributions.
       p:  Positive floating point tensor with shape broadcastable to
         `[N1,..., Nm, k]` `m >= 0` and same dtype as `n`.  Defines this as
         a batch of `N1 x ... x Nm` different `k` class Multinomial
         distributions. `p`'s components in the last portion of its shape should
-        sum up to 1. Only one of `logits` or `p` should be passed in.
+        sum up to 1.
       validate_args: `Boolean`, default `False`.  Whether to assert valid
         values for parameters `n` and `p`, and `x` in `prob` and `log_prob`.
         If `False`, correct behavior is not guaranteed.
@@ -148,32 +147,33 @@ class Multinomial(distribution.Distribution):
     ```
 
     """
-    parameters = locals()
-    parameters.pop("self")
-    with ops.name_scope(name, values=[n, p]) as ns:
+
+    self._logits, self._p = distribution_util.get_logits_and_prob(
+        name=name, logits=logits, p=p, validate_args=validate_args,
+        multidimensional=True)
+    with ops.name_scope(name, values=[n, self._p]) as ns:
       with ops.control_dependencies([
           check_ops.assert_non_negative(
               n, message="n has negative components."),
           distribution_util.assert_integer_form(
               n, message="n has non-integer components.")
       ] if validate_args else []):
-        self._logits, self._p = distribution_util.get_logits_and_prob(
-            name=name, logits=logits, p=p, validate_args=validate_args,
-            multidimensional=True)
         self._n = array_ops.identity(n, name="convert_n")
         self._mean_val = array_ops.expand_dims(n, -1) * self._p
         self._broadcast_shape = math_ops.reduce_sum(
             self._mean_val, reduction_indices=[-1], keep_dims=False)
-    super(Multinomial, self).__init__(
-        dtype=self._p.dtype,
-        is_continuous=False,
-        is_reparameterized=False,
-        validate_args=validate_args,
-        allow_nan_stats=allow_nan_stats,
-        parameters=parameters,
-        graph_parents=[self._p, self._n, self._mean_val,
-                       self._logits, self._broadcast_shape],
-        name=ns)
+        super(Multinomial, self).__init__(
+            dtype=self._p.dtype,
+            parameters={"p": self._p,
+                        "n": self._n,
+                        "mean": self._mean,
+                        "logits": self._logits,
+                        "broadcast_shape": self._broadcast_shape},
+            is_continuous=False,
+            is_reparameterized=False,
+            validate_args=validate_args,
+            allow_nan_stats=allow_nan_stats,
+            name=ns)
 
   @property
   def n(self):
@@ -181,16 +181,14 @@ class Multinomial(distribution.Distribution):
     return self._n
 
   @property
-  def logits(self):
-    """Vector of coordinatewise logits."""
-    return self._logits
+  def p(self):
+    """Event probabilities."""
+    return self._p
 
   @property
-  def p(self):
-    """Vector of probabilities summing to one.
-
-    Each element is the probability of drawing that coordinate."""
-    return self._p
+  def logits(self):
+    """Log-odds."""
+    return self._logits
 
   def _batch_shape(self):
     return array_ops.shape(self._broadcast_shape)
@@ -223,8 +221,9 @@ class Multinomial(distribution.Distribution):
 
   def _variance(self):
     p = self.p * array_ops.expand_dims(array_ops.ones_like(self.n), -1)
-    outer_prod = math_ops.matmul(
-        array_ops.expand_dims(self._mean_val, -1), array_ops.expand_dims(p, -2))
+    outer_prod = math_ops.batch_matmul(
+        array_ops.expand_dims(self._mean_val, -1),
+        array_ops.expand_dims(p, -2))
     return array_ops.matrix_set_diag(-outer_prod,
                                      self._mean_val - self._mean_val * p)
 

@@ -31,7 +31,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import sys
 import time
 
 import tensorflow as tf
@@ -76,14 +75,14 @@ def run_training():
     eval_correct = mnist.evaluation(logits, labels)
 
     # Build the summary operation based on the TF collection of Summaries.
-    summary_op = tf.summary.merge_all()
+    summary_op = tf.merge_all_summaries()
 
     # Create a saver for writing training checkpoints.
     saver = tf.train.Saver()
 
     # Create the op for initializing variables.
-    init_op = tf.group(tf.global_variables_initializer(),
-                       tf.local_variables_initializer())
+    init_op = tf.group(tf.initialize_all_variables(),
+                       tf.initialize_local_variables())
     # Create a session for running Ops on the Graph.
     sess = tf.Session()
 
@@ -185,5 +184,6 @@ if __name__ == '__main__':
       help='If true, uses fake data for unit testing.',
       action='store_true'
   )
-  FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  FLAGS = parser.parse_args()
+
+  tf.app.run()

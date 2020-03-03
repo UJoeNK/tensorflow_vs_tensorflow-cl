@@ -18,10 +18,8 @@ limitations under the License.
 namespace tensorflow {
 REGISTER2(BinaryOp, CPU, "Mod", functor::safe_mod, int32, int64);
 REGISTER2(BinaryOp, CPU, "Mod", functor::fmod, float, double);
-REGISTER2(BinaryOp, CPU, "TruncateMod", functor::safe_mod, int32, int64);
-REGISTER2(BinaryOp, CPU, "TruncateMod", functor::fmod, float, double);
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 // A special GPU kernel for int32.
 // TODO(b/25387198): Also enable int32 in device memory. This kernel
 // registration requires all int32 inputs and outputs to be in host memory.
@@ -32,12 +30,5 @@ REGISTER_KERNEL_BUILDER(Name("Mod")
                             .HostMemory("z")
                             .TypeConstraint<int32>("T"),
                         BinaryOp<CPUDevice, functor::safe_mod<int32>>);
-REGISTER_KERNEL_BUILDER(Name("TruncateMod")
-                            .Device(DEVICE_GPU)
-                            .HostMemory("x")
-                            .HostMemory("y")
-                            .HostMemory("z")
-                            .TypeConstraint<int32>("T"),
-                        BinaryOp<CPUDevice, functor::safe_mod<int32>>);
-#endif
+// #endif
 }  // namespace tensorflow

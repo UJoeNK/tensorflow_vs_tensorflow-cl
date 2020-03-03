@@ -24,17 +24,15 @@ import tensorflow as tf
 class MatrixTriangularSolveOpTest(tf.test.TestCase):
 
   def _verifySolveAllWays(self, x, y, batch_dims=None):
-    for use_gpu in True, False:
-      for lower in True, False:
-        for adjoint in True, False:
-          self._verifySolve(x,
-                            y,
-                            lower=lower,
-                            adjoint=adjoint,
-                            batch_dims=batch_dims,
-                            use_gpu=use_gpu)
+    for lower in True, False:
+      for adjoint in True, False:
+        self._verifySolve(x,
+                          y,
+                          lower=lower,
+                          adjoint=adjoint,
+                          batch_dims=batch_dims)
 
-  def _verifySolve(self, x, y, lower=True, adjoint=False, batch_dims=None, use_gpu=False):
+  def _verifySolve(self, x, y, lower=True, adjoint=False, batch_dims=None):
     for np_type in [np.float32, np.float64]:
       a = x.astype(np_type)
       b = y.astype(np_type)
@@ -54,7 +52,7 @@ class MatrixTriangularSolveOpTest(tf.test.TestCase):
         a_np = np.tile(a_np, batch_dims + [1, 1])
         b = np.tile(b, batch_dims + [1, 1])
 
-      with self.test_session(use_gpu=use_gpu):
+      with self.test_session():
         tf_ans = tf.matrix_triangular_solve(a, b, lower=lower, adjoint=adjoint)
         out = tf_ans.eval()
         np_ans = np.linalg.solve(a_np, b)

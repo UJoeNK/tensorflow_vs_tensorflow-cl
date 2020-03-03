@@ -2,9 +2,6 @@
 
 Returns tensor `num_epochs` times and then raises an `OutOfRange` error.
 
-Note: creates local counter `epochs`. Use `local_variable_initializer()` to
-initialize local variables.
-
 ##### Args:
 
 

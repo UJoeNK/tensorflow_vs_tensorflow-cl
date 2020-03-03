@@ -4,7 +4,9 @@ Stochastically creates batches based on per-class probabilities.
 
 This method discards examples. Internally, it creates one queue to amortize
 the cost of disk reads, and one queue to hold the properly-proportioned
-batch.
+batch. See `stratified_sample_unknown_dist` for a function that performs
+stratified sampling with one queue per class and doesn't require knowing the
+class data-distribution ahead of time.
 
 ##### Args:
 

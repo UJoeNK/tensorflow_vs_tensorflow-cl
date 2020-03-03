@@ -19,7 +19,6 @@ Initialize CheckpointSaverHook monitor.
 
 
 *  <b>`ValueError`</b>: One of `save_steps` or `save_secs` should be set.
-*  <b>`ValueError`</b>: Exactly one of saver or scaffold should be set.
 
 
 - - -

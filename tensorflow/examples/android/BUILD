@@ -16,7 +16,7 @@ cc_binary(
     srcs = glob([
         "jni/**/*.cc",
         "jni/**/*.h",
-    ]),
+    ]) + [],
     copts = tf_copts(),
     linkopts = [
         "-landroid",
@@ -25,6 +25,7 @@ cc_binary(
         "-lm",
         "-z defs",
         "-s",
+        "-Wl,--icf=all",  # Identical Code Folding
         "-Wl,--version-script",  # This line must be directly followed by LINKER_SCRIPT.
         LINKER_SCRIPT,
     ],
@@ -54,14 +55,11 @@ android_binary(
     name = "tensorflow_demo",
     srcs = glob([
         "src/**/*.java",
-    ]),
-    # Package assets from assets dir as well as all model targets. Remove undesired models
-    # (and corresponding Activities in source) to reduce APK size.
-    assets = [
-        "//tensorflow/examples/android/assets:asset_files",
-        "@inception5h//:model_files",
+    ]) + [
+        "//tensorflow/contrib/android:android_tensorflow_inference_java_srcs",
     ],
-    assets_dir = "",
+    assets = glob(["assets/**"]),
+    assets_dir = "assets",
     custom_package = "org.tensorflow.demo",
     inline_constants = 1,
     manifest = "AndroidManifest.xml",
@@ -72,7 +70,6 @@ android_binary(
     ],
     deps = [
         ":tensorflow_native_libs",
-        "//tensorflow/contrib/android:android_tensorflow_inference_java",
     ],
 )
 

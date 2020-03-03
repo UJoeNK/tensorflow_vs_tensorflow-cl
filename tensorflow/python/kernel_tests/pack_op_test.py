@@ -44,9 +44,6 @@ class PackOpTest(tf.test.TestCase):
         c = tf.pack(xs)
         self.assertAllEqual(c.eval(), data)
 
-        c = tf.stack(xs)
-        self.assertAllEqual(c.eval(), data)
-
   def testConst(self):
     np.random.seed(7)
     with self.test_session(use_gpu=True):
@@ -65,16 +62,9 @@ class PackOpTest(tf.test.TestCase):
           self.assertEqual(cl.op.type, "Const")
           self.assertAllEqual(cl.eval(), data)
 
-          cl = tf.stack(data_list)
-          self.assertEqual(cl.op.type, "Const")
-          self.assertAllEqual(cl.eval(), data)
-
       # Verify that shape induction works with shapes produced via const pack
       a = tf.constant([1, 2, 3, 4, 5, 6])
       b = tf.reshape(a, tf.pack([2, 3]))
-      self.assertAllEqual(b.get_shape(), [2, 3])
-
-      b = tf.reshape(a, tf.stack([2, 3]))
       self.assertAllEqual(b.get_shape(), [2, 3])
 
   def testGradientsAxis0(self):
@@ -86,10 +76,6 @@ class PackOpTest(tf.test.TestCase):
         # TODO(irving): Remove list() once we handle maps correctly
         xs = list(map(tf.constant, data))
         c = tf.pack(xs)
-        err = tf.test.compute_gradient_error(xs, shapes, c, shape)
-        self.assertLess(err, 1e-6)
-
-        c = tf.stack(xs)
         err = tf.test.compute_gradient_error(xs, shapes, c, shape)
         self.assertLess(err, 1e-6)
 
@@ -107,10 +93,6 @@ class PackOpTest(tf.test.TestCase):
         err = tf.test.compute_gradient_error(xs, shapes, c, out_shape)
         self.assertLess(err, 1e-6)
 
-        c = tf.stack(xs, axis=1)
-        err = tf.test.compute_gradient_error(xs, shapes, c, out_shape)
-        self.assertLess(err, 1e-6)
-
   def testZeroSize(self):
     # Verify that pack doesn't crash for zero size inputs
     with self.test_session(use_gpu=True):
@@ -119,18 +101,13 @@ class PackOpTest(tf.test.TestCase):
         p = tf.pack(list(x)).eval()
         self.assertAllEqual(p, x)
 
-        p = tf.stack(list(x)).eval()
-        self.assertAllEqual(p, x)
-
   def testAxis0Default(self):
     with self.test_session(use_gpu=True):
       t = [tf.constant([1, 2, 3]), tf.constant([4, 5, 6])]
 
       packed = tf.pack(t).eval()
-      stacked = tf.stack(t).eval()
 
     self.assertAllEqual(packed, np.array([[1, 2, 3], [4, 5, 6]]))
-    self.assertAllEqual(stacked, np.array([[1, 2, 3], [4, 5, 6]]))
 
   def testAgainstNumpy(self):
     # For 1 to 5 dimensions.
@@ -142,30 +119,21 @@ class PackOpTest(tf.test.TestCase):
         test_arrays = np_split_squeeze(expected, j)
 
         with self.test_session(use_gpu=True):
-          actual_pack = tf.pack(test_arrays, axis=j)
-          self.assertEqual(expected.shape, actual_pack.get_shape())
-          actual_pack = actual_pack.eval()
+          actual = tf.pack(test_arrays, axis=j)
+          self.assertEqual(expected.shape, actual.get_shape())
+          actual = actual.eval()
 
-          actual_stack = tf.pack(test_arrays, axis=j)
-          self.assertEqual(expected.shape, actual_stack.get_shape())
-          actual_stack = actual_stack.eval()
-
-        self.assertNDArrayNear(expected, actual_pack, 1e-6)
-        self.assertNDArrayNear(expected, actual_stack, 1e-6)
+        self.assertNDArrayNear(expected, actual, 1e-6)
 
   def testDimOutOfRange(self):
     t = [tf.constant([1, 2, 3]), tf.constant([4, 5, 6])]
     with self.assertRaisesRegexp(ValueError, r"axis = 2 not in \[-2, 2\)"):
-      tf.pack(t, axis=2)
-    with self.assertRaisesRegexp(ValueError, r"axis = 2 not in \[-2, 2\)"):
-      tf.stack(t, axis=2)
+      tf.unpack(t, axis=2)
 
   def testDimOutOfNegativeRange(self):
     t = [tf.constant([1, 2, 3]), tf.constant([4, 5, 6])]
     with self.assertRaisesRegexp(ValueError, r"axis = -3 not in \[-2, 2\)"):
-      tf.pack(t, axis=-3)
-    with self.assertRaisesRegexp(ValueError, r"axis = -3 not in \[-2, 2\)"):
-      tf.stack(t, axis=-3)
+      tf.unpack(t, axis=-3)
 
 
 class AutomaticPackingTest(tf.test.TestCase):

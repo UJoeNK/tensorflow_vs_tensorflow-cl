@@ -52,9 +52,9 @@ class SummaryOpsTest(tf.test.TestCase):
   def testMergeSummary(self):
     with self.test_session() as sess:
       const = tf.constant(10.0)
-      summ1 = tf.summary.histogram("h", const)
-      summ2 = tf.scalar_summary("c", const)
-      merge = tf.summary.merge([summ1, summ2])
+      summ1 = tf.histogram_summary("h", const, name="histo")
+      summ2 = tf.scalar_summary("c", const, name="summ")
+      merge = tf.merge_summary([summ1, summ2])
       value = sess.run(merge)
     self.assertEqual([], merge.get_shape())
     self.assertProtoEquals("""
@@ -80,10 +80,11 @@ class SummaryOpsTest(tf.test.TestCase):
   def testMergeAllSummaries(self):
     with tf.Graph().as_default():
       const = tf.constant(10.0)
-      summ1 = tf.summary.histogram("h", const)
-      summ2 = tf.summary.scalar("o", const, collections=["foo_key"])
-      summ3 = tf.summary.scalar("c", const)
-      merge = tf.summary.merge_all()
+      summ1 = tf.histogram_summary("h", const, name="histo")
+      summ2 = tf.scalar_summary("o", const, name="oops",
+                                        collections=["foo_key"])
+      summ3 = tf.scalar_summary("c", const, name="summ")
+      merge = tf.merge_all_summaries()
       self.assertEqual("MergeSummary", merge.op.type)
       self.assertEqual(2, len(merge.op.inputs))
       self.assertEqual(summ1, merge.op.inputs[0])
@@ -99,7 +100,7 @@ class SummaryOpsTest(tf.test.TestCase):
       for dtype in (tf.int8, tf.uint8, tf.int16, tf.int32,
                     tf.float32, tf.float64):
         const = tf.constant(10, dtype=dtype)
-        tf.summary.histogram("h", const)
+        tf.histogram_summary("h", const, name="histo")
 
 
 if __name__ == "__main__":

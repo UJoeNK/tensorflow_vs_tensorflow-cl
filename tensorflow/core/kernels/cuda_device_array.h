@@ -15,7 +15,7 @@ limitations under the License.
 #ifndef THIRD_PARTY_TENSORFLOW_CORE_KERNELS_CUDA_DEVICE_ARRAY_H_
 #define THIRD_PARTY_TENSORFLOW_CORE_KERNELS_CUDA_DEVICE_ARRAY_H_
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 #include "tensorflow/core/common_runtime/gpu/gpu_event_mgr.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -37,7 +37,7 @@ namespace tensorflow {
 //   launchKernel(..., ptrs.data, ...);
 //
 // ValueType must be memcopyable.
-template <typename ValueType, int MaxInlineValues = 8>
+template <typename ValueType, int MaxInlineValues = 64>
 class CudaDeviceArrayOnHost {
  public:
   CudaDeviceArrayOnHost(OpKernelContext* context, int32 size)
@@ -99,6 +99,10 @@ class CudaDeviceArrayOnHost {
     return data_;
   }
 
+  bool temphack_inlined() const { return inlined(); }
+  int temphack_size() const { return (int)data_.size; }
+  int temphack_maxsize() const { return (int)MaxInlineValues; }
+
  private:
   bool inlined() const { return data_.size <= MaxInlineValues; }
 
@@ -115,6 +119,6 @@ class CudaDeviceArrayOnHost {
 
 }  // namespace tensorflow
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 #endif  // THIRD_PARTY_TENSORFLOW_CORE_KERNELS_CUDA_DEVICE_ARRAY_H_

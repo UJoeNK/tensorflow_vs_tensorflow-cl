@@ -13,9 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#if !GOOGLE_CUDA
-#error This file must only be included when building with Cuda support
-#endif
+//#if !GOOGLE_CUDA
+//#error This file must only be included when building with Cuda support
+//#endif
 
 #ifndef TENSORFLOW_COMMON_RUNTIME_GPU_GPU_DEVICE_H_
 #define TENSORFLOW_COMMON_RUNTIME_GPU_GPU_DEVICE_H_
@@ -41,7 +41,7 @@ namespace tensorflow {
 class BaseGPUDevice : public LocalDevice {
  public:
   BaseGPUDevice(const SessionOptions& options, const string& name,
-                Bytes memory_limit, const DeviceLocality& locality, int gpu_id,
+                Bytes memory_limit, BusAdjacency bus_adjacency, int gpu_id,
                 const string& physical_device_desc, Allocator* gpu_allocator,
                 Allocator* cpu_allocator, bool sync_every_op,
                 int32 max_streams);
@@ -118,8 +118,7 @@ class BaseGPUDeviceFactory : public DeviceFactory {
 
   virtual BaseGPUDevice* CreateGPUDevice(const SessionOptions& options,
                                          const string& name, Bytes memory_limit,
-                                         const DeviceLocality& locality,
-                                         int gpu_id,
+                                         BusAdjacency bus_adjacency, int gpu_id,
                                          const string& physical_device_desc,
                                          Allocator* gpu_allocator,
                                          Allocator* cpu_allocator) = 0;

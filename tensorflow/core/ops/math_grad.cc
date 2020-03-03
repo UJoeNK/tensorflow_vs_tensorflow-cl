@@ -62,7 +62,7 @@ REGISTER_OP_GRADIENT("Neg", NegGrad);
 Status InvGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format off
   return GradForUnaryCwise(g, {
-      {{"y"}, "Reciprocal", {"x"}},
+      {{"y"}, "Inv", {"x"}},
       {{"y2"}, "Square", {"y"}, {}, {"dy"}},
       {{"y2_neg"}, "Neg", {"y2"}},
       {{"dx"}, "Mul", {"dy", "y2_neg"}}
@@ -70,7 +70,6 @@ Status InvGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format on
 }
 REGISTER_OP_GRADIENT("Inv", InvGrad);
-REGISTER_OP_GRADIENT("Reciprocal", InvGrad);
 
 Status SquareGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format off
@@ -88,7 +87,7 @@ Status SqrtGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format off
   return GradForUnaryCwise(g, {
       {{"y"}, "Sqrt", {"x"}},
-      {{"y_inv"}, "Reciprocal", {"y"}, {}, {"dy"}},
+      {{"y_inv"}, "Inv", {"y"}, {}, {"dy"}},
       FDH::Const("const", 0.5f),
       {{"half"}, "Cast", {"const"}, {{"SrcT", DT_FLOAT}, {"DstT", "$T"}}},
       {{"a"}, "Mul", {"half", "y_inv"}},  // .5 * 1/y
@@ -101,7 +100,7 @@ REGISTER_OP_GRADIENT("Sqrt", SqrtGrad);
 Status RsqrtGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format off
   return GradForUnaryCwise(g, {
-      {{"x_inv"}, "Reciprocal", {"x"}, {}, {"dy"}},
+      {{"x_inv"}, "Inv", {"x"}, {}, {"dy"}},
       {{"y"}, "Rsqrt", {"x"}},
       FDH::Const("const", -.5f),
       {{"neghalf"}, "Cast", {"const"}, {{"SrcT", DT_FLOAT}, {"DstT", "$T"}}},
@@ -126,7 +125,7 @@ REGISTER_OP_GRADIENT("Exp", ExpGrad);
 Status LogGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format off
   return GradForUnaryCwise(g, {
-      {{"x_inv"}, "Reciprocal", {"x"}, {}, {"dy"}},
+      {{"x_inv"}, "Inv", {"x"}, {}, {"dy"}},
       {{"dx"}, "Mul", {"dy", "x_inv"}},           // dy * 1/x
   });
   // clang-format on
@@ -202,7 +201,7 @@ Status AcosGrad(const AttrSlice& attrs, FunctionDef* g) {
     {{"one"}, "Cast", {"const"}, {{"SrcT", DT_FLOAT}, {"DstT", "$T"}}},
     {{"a"}, "Sub", {"one", "x2"}}, // 1 - x^2
     {{"b"}, "Sqrt", {"a"}},
-    {{"inv"}, "Reciprocal", {"b"}},
+    {{"inv"}, "Inv", {"b"}},
     {{"neg"}, "Neg", {"inv"}},
     {{"dx"}, "Mul", {"dy", "neg"}}
   });
@@ -218,7 +217,7 @@ Status AsinGrad(const AttrSlice& attrs, FunctionDef* g) {
     {{"one"}, "Cast", {"const"}, {{"SrcT", DT_FLOAT}, {"DstT", "$T"}}},
     {{"a"}, "Sub", {"one", "x2"}}, // 1 - x^2
     {{"b"}, "Sqrt", {"a"}},
-    {{"inv"}, "Reciprocal", {"b"}},
+    {{"inv"}, "Inv", {"b"}},
     {{"dx"}, "Mul", {"dy", "inv"}}
   });
   // clang-format on
@@ -232,7 +231,7 @@ Status AtanGrad(const AttrSlice& attrs, FunctionDef* g) {
     FDH::Const("const", 1.0f),
     {{"one"}, "Cast", {"const"}, {{"SrcT", DT_FLOAT}, {"DstT", "$T"}}},
     {{"a"}, "Add", {"one", "x2"}}, // 1 + x^2
-    {{"inv"}, "Reciprocal", {"a"}},
+    {{"inv"}, "Inv", {"a"}},
     {{"dx"}, "Mul", {"dy", "inv"}}
   });
   // clang-format on
@@ -243,7 +242,7 @@ Status TanGrad(const AttrSlice& attrs, FunctionDef* g) {
   // clang-format off
   return GradForUnaryCwise(g, {
     {{"cosx"}, "Cos", {"x"}},
-    {{"secx"}, "Reciprocal", {"cosx"}},
+    {{"secx"}, "Inv", {"cosx"}},
     {{"secx2"}, "Square", {"secx"}},
     {{"dx"}, "Mul", {"dy", "secx2"}}
   });
@@ -675,7 +674,5 @@ REGISTER_OP_NO_GRADIENT("LogicalNot");
 // Sequence generation ops.
 REGISTER_OP_NO_GRADIENT("Range");
 REGISTER_OP_NO_GRADIENT("LinSpace");
-
-REGISTER_OP_NO_GRADIENT("Floor");
 
 }  // end namespace tensorflow

@@ -80,8 +80,7 @@ def freeze_graph(input_graph, input_saver, input_binary, input_checkpoint,
     print("Input saver file '" + input_saver + "' does not exist!")
     return -1
 
-  # 'input_checkpoint' may be a prefix if we're using Saver V2 format
-  if not tf.train.checkpoint_exists(input_checkpoint):
+  if not tf.gfile.Glob(input_checkpoint):
     print("Input checkpoint '" + input_checkpoint + "' doesn't exist!")
     return -1
 

@@ -54,7 +54,7 @@ class FunctionalOpsTest(tf.test.TestCase):
         # Check that we have the one variable we asked for here.
         self.assertEqual(len(tf.trainable_variables()), 1)
         self.assertEqual(tf.trainable_variables()[0].name, "root/body/two:0")
-        sess.run([tf.global_variables_initializer()])
+        sess.run([tf.initialize_all_variables()])
         self.assertAllEqual(208, r.eval())
 
         # Now let's reuse our single variable.
@@ -83,7 +83,7 @@ class FunctionalOpsTest(tf.test.TestCase):
         # Check that we have the one variable we asked for here.
         self.assertEqual(len(tf.trainable_variables()), 1)
         self.assertEqual(tf.trainable_variables()[0].name, "root/body/two:0")
-        sess.run([tf.global_variables_initializer()])
+        sess.run([tf.initialize_all_variables()])
         self.assertAllEqual(450, r.eval())
 
         # Now let's reuse our single variable.
@@ -114,13 +114,6 @@ class FunctionalOpsTest(tf.test.TestCase):
       r = tf.map_fn(lambda x: tf.mul(tf.add(x, 3), 2), elems)
       self.assertAllEqual(np.array([(x + 3) * 2 for x in nums]), r.eval())
 
-  def testMapSparseTensor(self):
-    with self.test_session():
-      with self.assertRaises(TypeError):
-        tf.map_fn(lambda x: x, tf.SparseTensor(indices=[[0, 0], [0, 1], [1, 0]],
-                                               values=tf.constant([0, 1, 2]),
-                                               shape=[2, 2]))
-
   def testMap_Scoped(self):
     with self.test_session() as sess:
 
@@ -140,7 +133,7 @@ class FunctionalOpsTest(tf.test.TestCase):
         # Check that we have the one variable we asked for here.
         self.assertEqual(len(tf.trainable_variables()), 1)
         self.assertEqual(tf.trainable_variables()[0].name, "root/body/two:0")
-        sess.run([tf.global_variables_initializer()])
+        sess.run([tf.initialize_all_variables()])
         self.assertAllEqual(doubles, r.eval())
 
         # Now let's reuse our single variable.
@@ -267,7 +260,7 @@ class FunctionalOpsTest(tf.test.TestCase):
         # Check that we have the one variable we asked for here.
         self.assertEqual(len(tf.trainable_variables()), 1)
         self.assertEqual(tf.trainable_variables()[0].name, "root/body/two:0")
-        sess.run([tf.global_variables_initializer()])
+        sess.run([tf.initialize_all_variables()])
         results = np.array([1, 6, 18, 44, 98, 208])
         self.assertAllEqual(results, r.eval())
 

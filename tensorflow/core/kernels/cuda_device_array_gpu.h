@@ -18,14 +18,14 @@ limitations under the License.
 #ifndef THIRD_PARTY_TENSORFLOW_CORE_KERNELS_CUDA_DEVICE_ARRAY_GPU_H_
 #define THIRD_PARTY_TENSORFLOW_CORE_KERNELS_CUDA_DEVICE_ARRAY_GPU_H_
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 namespace tensorflow {
 
-static constexpr int kMaxInlineCudaPointers = 8;
+static constexpr int kMaxInlineCudaPointers = 64;
 // To decode on the device side, use GetCudaDeviceArrayOnDevice.
 // To encode on the host side, use CudaDeviceArrayOnHost.
-template <typename ValueType, int MaxInlineValues = 8>
+template <typename ValueType, int MaxInlineValues = 64>
 struct CudaDeviceArrayStruct {
   int32 size;
   // used if size <= MaxInlineValues;
@@ -45,6 +45,6 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE ValueType* GetCudaDeviceArrayOnDevice(
 
 }  // namespace tensorflow
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 #endif  // THIRD_PARTY_TENSORFLOW_CORE_KERNELS_CUDA_DEVICE_ARRAY_GPU_H_

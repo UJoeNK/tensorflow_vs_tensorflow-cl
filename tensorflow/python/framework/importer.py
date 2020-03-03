@@ -60,7 +60,7 @@ def _ArgToTypesNoRef(node_def, arg_def):
 def _SingleArgToTypes(node_def, arg_def):
   types = _ArgToTypesNoRef(node_def, arg_def)
   if arg_def.is_ref:
-    return [dtypes.as_dtype(dt)._as_ref.as_datatype_enum for dt in types]  # pylint: disable=protected-access
+    return [dtypes.as_dtype(dt).as_ref.as_datatype_enum for dt in types]
   return types
 
 
@@ -400,26 +400,18 @@ def import_graph_def(graph_def, input_map=None, return_elements=None,
             # would cause graphs to fail if imported after correcting.
             #
             # This can be removed after 2017/03/08.
-            if op.type in ['RandomShuffleQueue', 'PaddingFIFOQueue',
-                           'FIFOQueue', 'PriorityQueue', 'QueueSize',
-                           'Stack', 'Barrier', 'BarrierReadySize',
-                           'BarrierIncompleteSize', 'HashTable',
-                           'MutableHashTable',
-                           'MutableHashTableOfTensors', 'Mutex',
-                           'CuckooTable', 'IndexTable',
-                           'WholeFileReader', 'TextLineReader',
-                           'FixedLengthRecordReader',
-                           'TFRecordReader', 'IdentityReader',
-                           'RefSwitch', 'RefEnter', 'RefNextIteration',
-                           'RefMerge', 'RefIdentity']:
-              pass
-            elif op.type in [
-                'ConditionalAccumulator', 'SparseConditionalAccumulator',
-                'Table'
-            ]:
-              # This can be removed after 2017/04/24.
-              pass
-            else:
+            if op.type not in ['RandomShuffleQueue', 'PaddingFIFOQueue',
+                               'FIFOQueue', 'PriorityQueue', 'QueueSize',
+                               'Stack', 'Barrier', 'BarrierReadySize',
+                               'BarrierIncompleteSize', 'HashTable',
+                               'MutableHashTable',
+                               'MutableHashTableOfTensors', 'Mutex',
+                               'CuckooTable', 'IndexTable',
+                               'WholeFileReader', 'TextLineReader',
+                               'FixedLengthRecordReader',
+                               'TFRecordReader', 'IdentityReader',
+                               'RefSwitch', 'RefEnter', 'RefNextIteration',
+                               'RefMerge', 'RefIdentity']:
               raise e
 
         del op.node_def.attr['_output_shapes']

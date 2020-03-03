@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow.contrib.learn.python.learn.estimators import run_config
 from tensorflow.contrib.learn.python.learn.experiment import Experiment
 from tensorflow.python.platform import tf_logging as logging
 
@@ -126,16 +125,16 @@ def _get_default_schedule(config):
   if not config or not _is_distributed(config):
     return 'train_and_evaluate'
 
-  if not config.task_type:
+  if not config.job_name:
     raise ValueError('Must specify a schedule')
 
-  if config.task_type == run_config.TaskType.MASTER:
+  if config.job_name == 'master':
     # TODO(rhaertel): handle the case where there is more than one master
     # or explicitly disallow such a case.
     return 'train_and_evaluate'
-  elif config.task_type == run_config.TaskType.PS:
+  elif config.job_name == 'ps':
     return 'run_std_server'
-  elif config.task_type == run_config.TaskType.WORKER:
+  elif config.job_name == 'worker':
     return 'train'
 
-  raise ValueError('No default schedule for task type: %s' % (config.task_type))
+  raise ValueError('No default schedule for task type: %s' % (config.job_name,))

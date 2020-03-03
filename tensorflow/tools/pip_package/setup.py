@@ -21,28 +21,25 @@ import fnmatch
 import os
 import re
 import sys
+import platform
 
 from setuptools import find_packages, setup, Command
 from setuptools.command.install import install as InstallCommandBase
 from setuptools.dist import Distribution
 
-# This version string is semver compatible, but incompatible with pip.
-# For pip, we will remove all '-' characters from this string, and use the
-# result for pip.
-_VERSION = '0.12.1'
+_VERSION = '0.11.0rc0'
 
 REQUIRED_PACKAGES = [
     'numpy >= 1.11.0',
     'six >= 1.10.0',
-    'protobuf >= 3.1.0',
+    'protobuf == 3.1.0',
 ]
 
-project_name = 'tensorflow'
-if '--project_name' in sys.argv:
-  project_name_idx = sys.argv.index('--project_name')
-  project_name = sys.argv[project_name_idx + 1]
-  sys.argv.remove('--project_name')
-  sys.argv.pop(project_name_idx)
+sharedobject_extension = '.so'
+print('platform uname[0]', platform.uname()[0])
+if platform.uname()[0] == 'Darwin':
+  sharedobject_extension = '.dylib'
+print('sharedobject_extension', sharedobject_extension)
 
 # python3 requires wheel 0.26
 if sys.version_info.major == 3:
@@ -63,8 +60,8 @@ TEST_PACKAGES = [
 ]
 
 class BinaryDistribution(Distribution):
-  def has_ext_modules(self):
-    return True
+  def is_pure(self):
+    return False
 
 
 class InstallCommand(InstallCommandBase):
@@ -150,26 +147,24 @@ def find_files(pattern, root):
 
 
 matches = ['../' + x for x in find_files('*', 'external') if '.py' not in x]
+#   print('matches', matches)
 
-if os.name == 'nt':
-  EXTENSION_NAME = 'python/_pywrap_tensorflow.pyd'
-else:
-  EXTENSION_NAME = 'python/_pywrap_tensorflow.so'
 
-headers = (list(find_files('*.h', 'tensorflow/core')) +
-           list(find_files('*.h', 'google/protobuf/src')) +
-           list(find_files('*', 'third_party/eigen3')) +
-           list(find_files('*', 'external/eigen_archive')))
+# headers = (list(find_files('*.h', 'tensorflow/core')) +
+#            list(find_files('*.h', 'google/protobuf/src')) +
+#            list(find_files('*', 'third_party/eigen3')) +
+#            list(find_files('*', 'external/eigen_archive')))
+headers = []
 
 
 setup(
-    name=project_name,
-    version=_VERSION.replace('-', ''),
-    description='TensorFlow helps the tensors flow',
+    name='tensorflow',
+    version=_VERSION,
+    description='OpenCL fork of TensorFlow',
     long_description='',
-    url='http://tensorflow.org/',
-    author='Google Inc.',
-    author_email='opensource@google.com',
+    url='http://tensorflow.org/;https://github.com/hughperkins/tensorflow-cl',
+    author='Google Inc., Hugh Perkins',
+    author_email='opensource@google.com;hughperkins@gmail.com',
     # Contained modules and scripts.
     packages=find_packages(),
     entry_points={
@@ -181,7 +176,11 @@ setup(
     # Add in any packaged data.
     include_package_data=True,
     package_data={
-        'tensorflow': [EXTENSION_NAME,
+        'tensorflow': ['python/_pywrap_tensorflow%s' % sharedobject_extension,
+                       'third_party/coriander/libclew%s' % sharedobject_extension,
+                       'third_party/coriander/libeasycl%s' % sharedobject_extension,
+                       'third_party/coriander/libcocl%s' % sharedobject_extension,
+                       'third_party/coriander/libclblast%s' % sharedobject_extension,
                        'tensorboard/dist/bazel-html-imports.html',
                        'tensorboard/dist/index.html',
                        'tensorboard/dist/tf-tensorboard.html',

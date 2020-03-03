@@ -26,13 +26,9 @@ class MatrixSolveOpTest(tf.test.TestCase):
 
   def _verifySolve(self, x, y, batch_dims=None):
     for adjoint in False, True:
-      for np_type in [np.float32, np.float64, np.complex64, np.complex128]:
-        if np_type is [np.float32, np.float64]:
-          a = x.real().astype(np_type)
-          b = y.real().astype(np_type)
-        else:
-          a = x.astype(np_type)
-          b = y.astype(np_type)
+      for np_type in [np.float32, np.float64]:
+        a = x.astype(np_type)
+        b = y.astype(np_type)
         if adjoint:
           a_np = np.conj(np.transpose(a))
         else:
@@ -51,17 +47,17 @@ class MatrixSolveOpTest(tf.test.TestCase):
           self.assertAllClose(np_ans, out)
 
   def testSolve(self):
-    matrix = np.array([[1.+5.j, 2.+6.j], [3.+7j, 4.+8.j]])
+    matrix = np.array([[1., 2.], [3., 4.]])
     # 2x1 right-hand side.
-    rhs1 = np.array([[1.+0.j], [1.+0.j]])
+    rhs1 = np.array([[1.], [1.]])
     self._verifySolve(matrix, rhs1)
     # 2x3 right-hand sides.
-    rhs3 = np.array([[1.+0.j, 0.+0.j, 1.+0.j], [0.+0.j, 1.+0.j, 1.+0.j]])
+    rhs3 = np.array([[1., 0., 1.], [0., 1., 1.]])
     self._verifySolve(matrix, rhs3)
 
   def testSolveBatch(self):
-    matrix = np.array([[1.+5.j, 2.+6.j], [3.+7j, 4.+8.j]])
-    rhs = np.array([[1.+0.j], [1.+0.j]])
+    matrix = np.array([[1., 2.], [3., 4.]])
+    rhs = np.array([[1., 0., 1.], [0., 1., 1.]])
     # Batch of 2x3x2x2 matrices, 2x3x2x3 right-hand sides.
     self._verifySolve(matrix, rhs, batch_dims=[2, 3])
     # Batch of 3x2x2x2 matrices, 3x2x2x3 right-hand sides.

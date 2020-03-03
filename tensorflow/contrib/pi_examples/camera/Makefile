@@ -39,7 +39,7 @@ INCLUDES := \
 -I/usr/local/include \
 -I. \
 -I$(DOWNLOADSDIR) \
--I$(DOWNLOADSDIR)/eigen/ \
+-I$(DOWNLOADSDIR)/eigen-latest/ \
 -I$(PROTOGENDIR) \
 -I$(PBTGENDIR)
 LIBS := \

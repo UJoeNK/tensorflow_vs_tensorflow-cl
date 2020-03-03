@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 #define EIGEN_USE_GPU
 
@@ -36,6 +36,8 @@ struct ApplyGradientDescent<GPUDevice, T> {
     var.device(d) -= lr.reshape(single).broadcast(bcast) * grad;
   }
 };
+
+// #if GOOGLE_CUDA
 
 template <typename T>
 struct ApplyAdagrad<GPUDevice, T> {
@@ -172,42 +174,47 @@ struct ApplyCenteredRMSProp<GPUDevice, T> {
         (rho.constant(one) - rho).reshape(single).broadcast(bcast);
     ms.device(d) = ms + one_minus_rho * (grad.square() - ms);
     mg.device(d) = mg + one_minus_rho * (grad - mg);
-    auto denom = (ms - mg.square()) + epsilon.reshape(single).broadcast(bcast);
+    auto denom =
+        epsilon.reshape(single).broadcast(bcast) + ms - mg.square().sqrt();
     mom.device(d) = mom * momentum.reshape(single).broadcast(bcast) +
                     lr.reshape(single).broadcast(bcast) * grad / denom.sqrt();
     var.device(d) -= mom;
   }
 };
 
+// #endif  // GOOGLE_CUDA
+
 }  // namespace functor
 
-template struct functor::ApplyGradientDescent<GPUDevice, Eigen::half>;
+// template struct functor::ApplyGradientDescent<GPUDevice, Eigen::half>;
 template struct functor::ApplyGradientDescent<GPUDevice, float>;
-template struct functor::ApplyGradientDescent<GPUDevice, double>;
+// template struct functor::ApplyGradientDescent<GPUDevice, double>;
 
-template struct functor::ApplyAdagrad<GPUDevice, Eigen::half>;
+// #if GOOGLE_CUDA
+
+// template struct functor::ApplyAdagrad<GPUDevice, Eigen::half>;
 template struct functor::ApplyAdagrad<GPUDevice, float>;
-template struct functor::ApplyAdagrad<GPUDevice, double>;
+// template struct functor::ApplyAdagrad<GPUDevice, double>;
 
-template struct functor::ApplyAdadelta<GPUDevice, Eigen::half>;
+// template struct functor::ApplyAdadelta<GPUDevice, Eigen::half>;
 template struct functor::ApplyAdadelta<GPUDevice, float>;
-template struct functor::ApplyAdadelta<GPUDevice, double>;
+// template struct functor::ApplyAdadelta<GPUDevice, double>;
 
-template struct functor::ApplyMomentum<GPUDevice, Eigen::half>;
+// template struct functor::ApplyMomentum<GPUDevice, Eigen::half>;
 template struct functor::ApplyMomentum<GPUDevice, float>;
-template struct functor::ApplyMomentum<GPUDevice, double>;
+// template struct functor::ApplyMomentum<GPUDevice, double>;
 
-template struct functor::ApplyAdam<GPUDevice, Eigen::half>;
+// template struct functor::ApplyAdam<GPUDevice, Eigen::half>;
 template struct functor::ApplyAdam<GPUDevice, float>;
-template struct functor::ApplyAdam<GPUDevice, double>;
+// template struct functor::ApplyAdam<GPUDevice, double>;
 
-template struct functor::ApplyRMSProp<GPUDevice, Eigen::half>;
+// template struct functor::ApplyRMSProp<GPUDevice, Eigen::half>;
 template struct functor::ApplyRMSProp<GPUDevice, float>;
-template struct functor::ApplyRMSProp<GPUDevice, double>;
+// template struct functor::ApplyRMSProp<GPUDevice, double>;
 
-template struct functor::ApplyCenteredRMSProp<GPUDevice, Eigen::half>;
+// template struct functor::ApplyCenteredRMSProp<GPUDevice, Eigen::half>;
 template struct functor::ApplyCenteredRMSProp<GPUDevice, float>;
-template struct functor::ApplyCenteredRMSProp<GPUDevice, double>;
+// template struct functor::ApplyCenteredRMSProp<GPUDevice, double>;
 }  // end namespace tensorflow
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA

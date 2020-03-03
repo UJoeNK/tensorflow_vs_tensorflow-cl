@@ -85,11 +85,10 @@ class PadOpTest(tf.test.TestCase):
     self.assertAllClose(jacob_t, jacob_n, rtol=1e-5, atol=1e-5)
 
   def _testAll(self, np_inputs, paddings):
-    for mode in ("CONSTANT", "REFLECT", "SYMMETRIC", "reflect", "symmetric",
-                 "constant"):
+    for mode in ("CONSTANT", "REFLECT", "SYMMETRIC"):
       # Zero-sized input is not allowed for REFLECT mode, but we still want
       # zero-sized input test cases for the other modes.
-      if np_inputs.size or mode.upper() != "REFLECT":
+      if np_inputs.size or mode != "REFLECT":
         self._testPad(np_inputs, paddings, mode=mode)
         if np_inputs.dtype == np.float32:
           self._testGradient(np_inputs, paddings, mode=mode)
@@ -155,12 +154,6 @@ class PadOpTest(tf.test.TestCase):
             tf.constant([1], shape=[2]),
             tf.constant([0, 3], shape=[1, 2]),
             mode="SYMMETRIC").eval()
-
-  def testInvalid(self):
-    with self.test_session():
-      x = [[1, 2, 3], [4, 5, 6]]
-      with self.assertRaisesRegexp(ValueError, "Unknown padding mode"):
-        tf.pad(x, [[1, 0], [2, 1]], mode="weird").eval()
 
   def testIntTypes(self):
     # TODO(touts): Figure out why the padding tests do not work on GPU

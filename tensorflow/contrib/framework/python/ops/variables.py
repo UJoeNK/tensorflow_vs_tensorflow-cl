@@ -21,11 +21,12 @@ from __future__ import print_function
 
 from tensorflow.contrib.framework.python.ops import add_arg_scope as contrib_add_arg_scope
 from tensorflow.contrib.framework.python.ops import gen_variable_ops
-from tensorflow.contrib.util import loader
 from tensorflow.python import pywrap_tensorflow
+from tensorflow.python.framework import common_shapes
 from tensorflow.python.framework import device as tf_device
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
+from tensorflow.python.framework.load_library import load_op_library
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import init_ops
@@ -74,9 +75,13 @@ def zero_initializer(ref, use_locking=True, name="zero_initializer"):
   Raises:
     ValueError: If ref tensor is initialized.
   """
-  loader.load_op_library(
-      resource_loader.get_path_to_datafile("_variable_ops.so"))
+  _variable_ops = load_op_library(resource_loader.get_path_to_datafile(
+        "_variable_ops.so"))
+  assert _variable_ops, "Could not load _variable_ops.so"
   return gen_variable_ops.zero_initializer(ref, name=name)
+
+
+ops.RegisterShape('ZeroInitializer')(common_shapes.call_cpp_shape_fn)
 
 
 def assert_global_step(global_step_tensor):
@@ -129,7 +134,7 @@ def create_global_step(graph=None):
     raise ValueError('"global_step" already exists.')
   # Create in proper graph and base name_scope.
   with graph.as_default() as g, g.name_scope(None):
-    collections = [ops.GraphKeys.GLOBAL_VARIABLES, ops.GraphKeys.GLOBAL_STEP]
+    collections = [ops.GraphKeys.VARIABLES, ops.GraphKeys.GLOBAL_STEP]
     return variable(ops.GraphKeys.GLOBAL_STEP, shape=[], dtype=dtypes.int64,
                     initializer=init_ops.zeros_initializer, trainable=False,
                     collections=collections)
@@ -185,7 +190,7 @@ def variable(name, shape=None, dtype=None, initializer=None,
     trainable: If `True` also add the variable to the graph collection
       `GraphKeys.TRAINABLE_VARIABLES` (see `tf.Variable`).
     collections: A list of collection names to which the Variable will be added.
-      If None it would default to `tf.GraphKeys.GLOBAL_VARIABLES`.
+      If None it would default to `tf.GraphKeys.VARIABLES`.
     caching_device: Optional device string or function describing where the
         Variable should be cached for reading.  Defaults to the Variable's
         device.
@@ -195,7 +200,7 @@ def variable(name, shape=None, dtype=None, initializer=None,
   Returns:
     The created or existing variable.
   """
-  collections = list(collections or [ops.GraphKeys.GLOBAL_VARIABLES])
+  collections = list(collections or [ops.GraphKeys.VARIABLES])
 
   # Remove duplicates
   collections = set(collections)
@@ -225,8 +230,8 @@ def model_variable(name, shape=None, dtype=dtypes.float32, initializer=None,
     trainable: If `True` also add the variable to the graph collection
       `GraphKeys.TRAINABLE_VARIABLES` (see `tf.Variable`).
     collections: A list of collection names to which the Variable will be added.
-      Note that the variable is always also added to the
-      `GraphKeys.GLOBAL_VARIABLES` and `GraphKeys.MODEL_VARIABLES` collections.
+      Note that the variable is always also added to the `GraphKeys.VARIABLES`
+      and `GraphKeys.MODEL_VARIABLES` collections.
     caching_device: Optional device string or function describing where the
         Variable should be cached for reading.  Defaults to the Variable's
         device.
@@ -237,7 +242,7 @@ def model_variable(name, shape=None, dtype=dtypes.float32, initializer=None,
     The created or existing variable.
   """
   collections = list(collections or [])
-  collections += [ops.GraphKeys.GLOBAL_VARIABLES, ops.GraphKeys.MODEL_VARIABLES]
+  collections += [ops.GraphKeys.VARIABLES, ops.GraphKeys.MODEL_VARIABLES]
   return variable(name, shape=shape, dtype=dtype,
                   initializer=initializer, regularizer=regularizer,
                   trainable=trainable, collections=collections,
@@ -254,22 +259,18 @@ def add_model_variable(var):
     ops.add_to_collection(ops.GraphKeys.MODEL_VARIABLES, var)
 
 
-def get_variables(scope=None, suffix=None,
-                  collection=ops.GraphKeys.GLOBAL_VARIABLES):
+def get_variables(scope=None, suffix=None, collection=ops.GraphKeys.VARIABLES):
   """Gets the list of variables, filtered by scope and/or suffix.
 
   Args:
-    scope: an optional scope for filtering the variables to return. Can be a
-      variable scope or a string.
+    scope: an optional scope for filtering the variables to return.
     suffix: an optional suffix for filtering the variables to return.
     collection: in which collection search for. Defaults to
-      `GraphKeys.GLOBAL_VARIABLES`.
+      `GraphKeys.VARIABLES`.
 
   Returns:
     a list of variables in collection with scope and suffix.
   """
-  if isinstance(scope, variable_scope.VariableScope):
-    scope = scope.name
   if suffix is not None:
     if ':' not in suffix:
       suffix += ':'
@@ -291,7 +292,7 @@ def get_model_variables(scope=None, suffix=None):
 
 
 def get_local_variables(scope=None, suffix=None):
-  """Gets the list of local variables, filtered by scope and/or suffix.
+  """Gets the list of model variables, filtered by scope and/or suffix.
 
   Args:
     scope: an optional scope for filtering the variables to return.
@@ -411,7 +412,7 @@ def assign_from_values(var_names_to_values):
 
   for var_name in var_names_to_values:
     var_value = var_names_to_values[var_name]
-    var = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES, var_name)
+    var = ops.get_collection(ops.GraphKeys.VARIABLES, var_name)
     if not var:
       raise ValueError('Variable %s wasnt found', var_name)
     elif len(var) > 1:

@@ -191,12 +191,11 @@ test_MNIST() {
       ${SYNC_REPLICAS_FLAG}
 
   if [[ $? == "0" ]]; then
-    echo "MNIST-replica test PASSED"
+    echo "MNIST-replica test PASSED\n"
   else
-    echo "MNIST-replica test FAILED"
+    echo "MNIST-replica test FAILED\n"
     return 1
   fi
-  echo ""
 }
 
 # Test routine for model "CENSUS_WIDENDEEP"
@@ -232,9 +231,8 @@ if [[ $(type -t "test_${MODEL_NAME}") != "function" ]]; then
 fi
 
 # Invoke test routine according to model name
-"test_${MODEL_NAME}" && \
-    FAILED=0 || \
-    FAILED=1
+"test_${MODEL_NAME}" || \
+    die "Test of distributed training of model ${MODEL_NAME} FAILED"
 
 # Tear down current k8s TensorFlow cluster
 if [[ "${TEARDOWN_WHEN_DONE}" == "1" ]]; then
@@ -244,9 +242,5 @@ if [[ "${TEARDOWN_WHEN_DONE}" == "1" ]]; then
       die "Cluster tear-down FAILED"
 fi
 
-if [[ "${FAILED}" == 1 ]]; then
-  die "Test of distributed training of model ${MODEL_NAME} FAILED"
-else
-  echo "SUCCESS: Test of distributed TensorFlow runtime PASSED"
-  echo ""
-fi
+echo "SUCCESS: Test of distributed TensorFlow runtime PASSED"
+echo ""

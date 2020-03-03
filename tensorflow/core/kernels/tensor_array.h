@@ -19,7 +19,6 @@ limitations under the License.
 #include <limits.h>
 #include <vector>
 
-#include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/resource_mgr.h"
 #include "tensorflow/core/framework/tensor.h"

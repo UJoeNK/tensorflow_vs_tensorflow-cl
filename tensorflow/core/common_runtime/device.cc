@@ -36,7 +36,7 @@ Device::~Device() { delete rmgr_; }
 // static
 DeviceAttributes Device::BuildDeviceAttributes(
     const string& name, DeviceType device, Bytes memory_limit,
-    const DeviceLocality& locality, const string& physical_device_desc) {
+    BusAdjacency bus_adjacency, const string& physical_device_desc) {
   DeviceAttributes da;
   da.set_name(name);
   do {
@@ -44,7 +44,7 @@ DeviceAttributes Device::BuildDeviceAttributes(
   } while (da.incarnation() == 0);  // This proto field must not be zero
   da.set_device_type(device.type());
   da.set_memory_limit(memory_limit.value());
-  *da.mutable_locality() = locality;
+  da.set_bus_adjacency(bus_adjacency);
   da.set_physical_device_desc(physical_device_desc);
   return da;
 }

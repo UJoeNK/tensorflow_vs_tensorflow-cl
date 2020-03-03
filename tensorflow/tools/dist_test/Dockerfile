@@ -24,7 +24,6 @@ MAINTAINER Shanqing Cai <cais@google.com>
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
-    curl \
     python \
     python-numpy \
     python-pip \

@@ -22,12 +22,17 @@ limitations under the License.
 namespace tensorflow {
 namespace functor {
 
-// Functor used by ReverseOp to do the computations.
+// Functor used by MirrorOp to do the computations.
 template <typename Device, typename T, int Dims>
 struct Reverse {
   void operator()(const Device& d, typename TTypes<T, Dims>::ConstTensor input,
-                  const Eigen::array<bool, Dims>& reverse_dims,
+                  typename TTypes<bool, 1>::ConstTensor dims,
                   typename TTypes<T, Dims>::Tensor output) {
+    // mirror is in host memory
+    Eigen::array<bool, Dims> reverse_dims;
+    for (int i = 0; i < Dims; ++i) {
+      reverse_dims[i] = dims(i);
+    }
     output.device(d) = input.reverse(reverse_dims);
   }
 };
@@ -35,7 +40,7 @@ struct Reverse {
 template <typename Device, typename T>
 struct Reverse<Device, T, 0> {
   void operator()(const Device& d, typename TTypes<T, 0>::ConstTensor input,
-                  const Eigen::array<bool, 0>& reverse_dims,
+                  typename TTypes<bool, 1>::ConstTensor,
                   typename TTypes<T, 0>::Tensor output) {
     // Reversing a scalar is copying it.
     output.device(d) = input;

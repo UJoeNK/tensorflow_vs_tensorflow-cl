@@ -19,14 +19,12 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorflow.contrib.framework.python.framework import checkpoint_utils
-from tensorflow.contrib.framework.python.framework import experimental
 from tensorflow.contrib.framework.python.ops import variables as contrib_variables
 from tensorflow.contrib.layers.python.layers import embedding_ops
 from tensorflow.contrib.layers.python.layers import feature_column as fc
 from tensorflow.contrib.layers.python.layers import layers
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-from tensorflow.python.framework import sparse_tensor as sparse_tensor_py
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import math_ops
@@ -129,9 +127,9 @@ def _embeddings_from_arguments(column,
       embeddings,
       input_tensor,
       sparse_weights=weight_tensor,
+      default_id=0,
       combiner=args.combiner,
-      name=column.name + 'weights',
-      max_norm=args.max_norm)
+      name=column.name + 'weights')
 
 
 def _input_from_feature_columns(columns_to_tensors,
@@ -150,7 +148,7 @@ def _input_from_feature_columns(columns_to_tensors,
     transformer = _Transformer(columns_to_tensors)
     if weight_collections:
       weight_collections = list(set(list(weight_collections) +
-                                    [ops.GraphKeys.GLOBAL_VARIABLES]))
+                                    [ops.GraphKeys.VARIABLES]))
 
     for column in sorted(set(feature_columns), key=lambda x: x.key):
       with variable_scope.variable_scope(None,
@@ -195,30 +193,30 @@ def input_from_feature_columns(columns_to_tensors,
   during this conversion. For example sparse features need a totally different
   handling than continuous features.
 
-  Example:
+  An example usage of input_from_feature_columns is as follows:
 
-  ```python
     # Building model for training
     columns_to_tensor = tf.parse_example(...)
     first_layer = input_from_feature_columns(
         columns_to_tensors=columns_to_tensor,
         feature_columns=feature_columns)
-    second_layer = fully_connected(inputs=first_layer, ...)
+    second_layer = fully_connected(first_layer, ...)
     ...
-  ```
 
-  where feature_columns can be defined as follows:
+    where feature_columns can be defined as follows:
 
-  ```python
-    sparse_feature = sparse_column_with_hash_bucket(
-        column_name="sparse_col", ...)
-    sparse_feature_emb = embedding_column(sparse_id_column=sparse_feature, ...)
-    real_valued_feature = real_valued_column(...)
-    real_valued_buckets = bucketized_column(
-        source_column=real_valued_feature, ...)
+    occupation = sparse_column_with_hash_bucket(column_name="occupation",
+                                              hash_bucket_size=1000)
+    occupation_emb = embedding_column(sparse_id_column=occupation, dimension=16,
+                                     combiner="sum")
+    age = real_valued_column("age")
+    age_buckets = bucketized_column(
+        source_column=age,
+        boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65])
+    occupation_x_age = crossed_column(columns=[occupation, age_buckets],
+                                      hash_bucket_size=10000)
 
-    feature_columns=[sparse_feature_emb, real_valued_buckets]
-  ```
+    feature_columns=[occupation_emb, occupation_x_age]
 
   Args:
     columns_to_tensors: A mapping from feature column to tensors. 'string' key
@@ -246,7 +244,7 @@ def input_from_feature_columns(columns_to_tensors,
                                      output_rank=2,
                                      default_name='input_from_feature_columns')
 
-@experimental
+
 def sequence_input_from_feature_columns(columns_to_tensors,
                                         feature_columns,
                                         weight_collections=None,
@@ -329,6 +327,7 @@ def _create_embedding_lookup(column,
         variable,
         embedding_lookup_arguments.input_tensor,
         sparse_weights=embedding_lookup_arguments.weight_tensor,
+        default_id=0,
         combiner=embedding_lookup_arguments.combiner,
         name=column.name + '_weights')
     return variable, predictions
@@ -366,9 +365,9 @@ def _create_joint_embedding_lookup(columns_to_tensors,
     values = t.values + prev_size
     prev_size += a.vocab_size
     sparse_tensors.append(
-        sparse_tensor_py.SparseTensor(t.indices,
-                                      values,
-                                      t.shape))
+        ops.SparseTensor(t.indices,
+                         values,
+                         t.shape))
   sparse_tensor = sparse_ops.sparse_concat(1, sparse_tensors)
   with variable_scope.variable_scope(
       None, default_name='linear_weights', values=columns_to_tensors.values()):
@@ -387,6 +386,7 @@ def _create_joint_embedding_lookup(columns_to_tensors,
         variable,
         sparse_tensor,
         sparse_weights=None,
+        default_id=0,
         combiner='sum',
         name='_weights')
     return variable, predictions
@@ -417,8 +417,7 @@ def joint_weighted_sum_from_feature_columns(columns_to_tensors,
     scope: Optional scope for variable_scope.
 
   Returns:
-    A tuple containing:
-
+    A tuple of followings:
       * A Tensor which represents predictions of a linear model.
       * A list of Variables storing the weights.
       * A Variable which is used for bias.
@@ -474,21 +473,30 @@ def weighted_sum_from_feature_columns(columns_to_tensors,
   to logits in classification problems. It refers to prediction itself for
   linear regression problems.
 
-  Example:
+  An example usage of weighted_sum_from_feature_columns is as follows:
 
-    ```
     # Building model for training
-    feature_columns = (
-        real_valued_column("my_feature1"),
-        ...
-    )
     columns_to_tensor = tf.parse_example(...)
     logits = weighted_sum_from_feature_columns(
         columns_to_tensors=columns_to_tensor,
         feature_columns=feature_columns,
         num_outputs=1)
     loss = tf.nn.sigmoid_cross_entropy_with_logits(logits, labels)
-    ```
+
+    where feature_columns can be defined as follows:
+
+    occupation = sparse_column_with_hash_bucket(column_name="occupation",
+                                              hash_bucket_size=1000)
+    occupation_emb = embedding_column(sparse_id_column=occupation, dimension=16,
+                                     combiner="sum")
+    age = real_valued_column("age")
+    age_buckets = bucketized_column(
+        source_column=age,
+        boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65])
+    occupation_x_age = crossed_column(columns=[occupation, age_buckets],
+                                      hash_bucket_size=10000)
+
+    feature_columns=[occupation_emb, occupation_x_age]
 
   Args:
     columns_to_tensors: A mapping from feature column to tensors. 'string' key
@@ -504,8 +512,7 @@ def weighted_sum_from_feature_columns(columns_to_tensors,
     scope: Optional scope for variable_scope.
 
   Returns:
-    A tuple containing:
-
+    A tuple of followings:
       * A Tensor which represents predictions of a linear model.
       * A dictionary which maps feature_column to corresponding Variable.
       * A Variable which is used for bias.
@@ -573,9 +580,7 @@ def parse_feature_columns_from_examples(serialized,
                                         example_names=None):
   """Parses tf.Examples to extract tensors for given feature_columns.
 
-  This is a wrapper of 'tf.parse_example'.
-
-  Example:
+  This is a wrapper of 'tf.parse_example'. A typical usage is as follows:
 
   ```python
   columns_to_tensor = parse_feature_columns_from_examples(
@@ -584,26 +589,22 @@ def parse_feature_columns_from_examples(serialized,
 
   # Where my_features are:
   # Define features and transformations
-  sparse_feature_a = sparse_column_with_keys(
-      column_name="sparse_feature_a", keys=["AB", "CD", ...])
+  country = sparse_column_with_keys(column_name="native_country",
+                                    keys=["US", "BRA", ...])
+  country_emb = embedding_column(sparse_id_column=country, dimension=3,
+                                 combiner="sum")
+  occupation = sparse_column_with_hash_bucket(column_name="occupation",
+                                              hash_bucket_size=1000)
+  occupation_emb = embedding_column(sparse_id_column=occupation, dimension=16,
+                                   combiner="sum")
+  occupation_x_country = crossed_column(columns=[occupation, country],
+                                        hash_bucket_size=10000)
+  age = real_valued_column("age")
+  age_buckets = bucketized_column(
+      source_column=age,
+      boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65])
 
-  embedding_feature_a = embedding_column(
-      sparse_id_column=sparse_feature_a, dimension=3, combiner="sum")
-
-  sparse_feature_b = sparse_column_with_hash_bucket(
-      column_name="sparse_feature_b", hash_bucket_size=1000)
-
-  embedding_feature_b = embedding_column(
-      sparse_id_column=sparse_feature_b, dimension=16, combiner="sum")
-
-  crossed_feature_a_x_b = crossed_column(
-      columns=[sparse_feature_a, sparse_feature_b], hash_bucket_size=10000)
-
-  real_feature = real_valued_column("real_feature")
-  real_feature_buckets = bucketized_column(
-      source_column=real_feature, boundaries=[...])
-
-  my_features = [embedding_feature_b, real_feature_buckets, embedding_feature_a]
+  my_features = [occupation_emb, age_buckets, country_emb]
   ```
 
   Args:
@@ -631,117 +632,6 @@ def parse_feature_columns_from_examples(serialized,
   return columns_to_tensors
 
 
-def transform_features(features, feature_columns):
-  """Returns transformed features based on features columns passed in.
-
-  Example:
-
-  ```python
-  columns_to_tensor = transform_features(features=features,
-                                         feature_columns=feature_columns)
-
-  # Where my_features are:
-  # Define features and transformations
-  sparse_feature_a = sparse_column_with_keys(
-      column_name="sparse_feature_a", keys=["AB", "CD", ...])
-
-  embedding_feature_a = embedding_column(
-      sparse_id_column=sparse_feature_a, dimension=3, combiner="sum")
-
-  sparse_feature_b = sparse_column_with_hash_bucket(
-      column_name="sparse_feature_b", hash_bucket_size=1000)
-
-  embedding_feature_b = embedding_column(
-      sparse_id_column=sparse_feature_b, dimension=16, combiner="sum")
-
-  crossed_feature_a_x_b = crossed_column(
-      columns=[sparse_feature_a, sparse_feature_b], hash_bucket_size=10000)
-
-  real_feature = real_valued_column("real_feature")
-  real_feature_buckets = bucketized_column(
-      source_column=real_feature, boundaries=[...])
-
-  feature_columns = [embedding_feature_b,
-                     real_feature_buckets,
-                     embedding_feature_a]
-  ```
-
-  Args:
-    features: A dictionary of features.
-    feature_columns: An iterable containing all the feature columns. All items
-      should be instances of classes derived from _FeatureColumn.
-
-  Returns:
-    A `dict` mapping FeatureColumn to `Tensor` and `SparseTensor` values.
-  """
-  check_feature_columns(feature_columns)
-  columns_to_tensor = features.copy()
-  transformer = _Transformer(columns_to_tensor)
-  for column in sorted(set(feature_columns), key=lambda x: x.key):
-    transformer.transform(column)
-  keys = list(columns_to_tensor.keys())
-  for k in keys:
-    if k not in feature_columns:
-      columns_to_tensor.pop(k)
-  return columns_to_tensor
-
-
-def parse_feature_columns_from_sequence_examples(
-    serialized,
-    context_feature_columns,
-    sequence_feature_columns,
-    name=None,
-    example_name=None):
-  """Parses tf.SequenceExamples to extract tensors for given `FeatureColumn`s.
-
-  Args:
-    serialized: A scalar (0-D Tensor) of type string, a single serialized
-      `SequenceExample` proto.
-    context_feature_columns: An iterable containing the feature columns for
-      context features. All items should be instances of classes derived from
-      `_FeatureColumn`. Can be `None`.
-    sequence_feature_columns: An iterable containing the feature columns for
-      sequence features. All items should be instances of classes derived from
-      `_FeatureColumn`. Can be `None`.
-    name: A name for this operation (optional).
-    example_name: A scalar (0-D Tensor) of type string (optional), the names of
-      the serialized proto.
-
-  Returns:
-    A tuple consisting of:
-    context_features: a dict mapping `FeatureColumns` from
-      `context_feature_columns` to their parsed `Tensors`/`SparseTensor`s.
-    sequence_features: a dict mapping `FeatureColumns` from
-      `sequence_feature_columns` to their parsed `Tensors`/`SparseTensor`s.
-  """
-  # Sequence example parsing requires a single (scalar) example.
-  try:
-    serialized = array_ops.reshape(serialized, [])
-  except ValueError as e:
-    raise ValueError(
-        'serialized must contain as single sequence example. Batching must be '
-        'done after parsing for sequence examples. Error: {}'.format(e))
-
-  if context_feature_columns is None:
-    context_feature_columns = []
-  if sequence_feature_columns is None:
-    sequence_feature_columns = []
-
-  check_feature_columns(context_feature_columns)
-  context_feature_spec = fc.create_feature_spec_for_parsing(
-      context_feature_columns)
-
-  check_feature_columns(sequence_feature_columns)
-  sequence_feature_spec = fc._create_sequence_feature_spec_for_parsing(  # pylint: disable=protected-access
-      sequence_feature_columns, allow_missing_by_default=False)
-
-  return parsing_ops.parse_single_sequence_example(serialized,
-                                                   context_feature_spec,
-                                                   sequence_feature_spec,
-                                                   example_name,
-                                                   name)
-
-
 def _log_variable(variable):
   if isinstance(variable, list):
     for var in variable:
@@ -755,7 +645,7 @@ def _log_variable(variable):
 
 def _infer_real_valued_column_for_tensor(name, tensor):
   """Creates a real_valued_column for given tensor and name."""
-  if isinstance(tensor, sparse_tensor_py.SparseTensor):
+  if isinstance(tensor, ops.SparseTensor):
     raise ValueError(
         'SparseTensor is not supported for auto detection. Please define '
         'corresponding FeatureColumn for tensor {} {}.', name, tensor)
@@ -811,29 +701,29 @@ class _Transformer(object):
   feature columns require data transformations. This class handles those
   transformations if they are not handled already.
 
-  Some features may be used in more than one place. For example, one can use a
+  Some features may be used in more than one places. For example one can use a
   bucketized feature by itself and a cross with it. In that case Transformer
   should create only one bucketization op instead of multiple ops for each
   feature column. To handle re-use of transformed columns, Transformer keeps all
   previously transformed columns.
 
-  Example:
+  An example usage of Transformer is as follows:
 
-  ```python
-    sparse_feature = sparse_column_with_hash_bucket(...)
-    real_valued_feature = real_valued_column(...)
-    real_valued_buckets = bucketized_column(source_column=real_valued_feature,
-                                            ...)
-    sparse_x_real = crossed_column(
-        columns=[sparse_feature, real_valued_buckets], hash_bucket_size=10000)
+    occupation = sparse_column_with_hash_bucket(column_name="occupation",
+                                                hash_bucket_size=1000)
+    age = real_valued_column("age")
+    age_buckets = bucketized_column(
+        source_column=age,
+        boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65])
+    occupation_x_age = crossed_column(columns=[occupation, age_buckets],
+                                      hash_bucket_size=10000)
 
     columns_to_tensor = tf.parse_example(...)
     transformer = Transformer(columns_to_tensor)
 
-    sparse_x_real_tensor = transformer.transform(sparse_x_real)
-    sparse_tensor = transformer.transform(sparse_feature)
-    real_buckets_tensor = transformer.transform(real_valued_buckets)
-  ```
+    occupation_x_age_tensor = transformer.transform(occupation_x_age)
+    occupation_tensor = transformer.transform(occupation)
+    age_buckets_tensor = transformer.transform(age_buckets)
   """
 
   def __init__(self, columns_to_tensors):
@@ -878,7 +768,7 @@ class _Transformer(object):
 def _add_variable_collection(weight_collections):
   if weight_collections:
     weight_collections = list(
-        set(list(weight_collections) + [ops.GraphKeys.GLOBAL_VARIABLES]))
+        set(list(weight_collections) + [ops.GraphKeys.VARIABLES]))
   return weight_collections
 
 

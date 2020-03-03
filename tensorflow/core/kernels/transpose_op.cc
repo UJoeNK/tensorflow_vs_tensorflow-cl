@@ -71,13 +71,11 @@ class InvertPermutationOp : public OpKernel {
   }
 };
 
-REGISTER_KERNEL_BUILDER(
-    Name("InvertPermutation").Device(DEVICE_CPU).TypeConstraint<int32>("T"),
-    InvertPermutationOp);
+REGISTER_KERNEL_BUILDER(Name("InvertPermutation").Device(DEVICE_CPU),
+                        InvertPermutationOp);
 
 REGISTER_KERNEL_BUILDER(Name("InvertPermutation")
                             .Device(DEVICE_GPU)
-                            .TypeConstraint<int32>("T")
                             .HostMemory("x")
                             .HostMemory("y"),
                         InvertPermutationOp);
@@ -182,7 +180,7 @@ TF_CALL_ALL_TYPES(REGISTER)
 REGISTER(bfloat16);
 #undef REGISTER
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 Status TransposeGpuOp::DoTranspose(OpKernelContext* ctx, const Tensor& in,
                                    gtl::ArraySlice<int32> perm, Tensor* out) {
   typedef Eigen::GpuDevice GPUDevice;
@@ -199,6 +197,6 @@ Status TransposeGpuOp::DoTranspose(OpKernelContext* ctx, const Tensor& in,
                           TransposeGpuOp);
 TF_CALL_POD_TYPES(REGISTER);
 #undef REGISTER
-#endif
+// #endif
 
 }  // namespace tensorflow

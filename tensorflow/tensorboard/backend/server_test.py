@@ -27,10 +27,9 @@ import json
 import numbers
 import os
 import shutil
-import tempfile
 import threading
+import zlib
 
-import numpy as np
 from six import BytesIO
 from six.moves import http_client
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -38,7 +37,6 @@ import tensorflow as tf
 
 from google.protobuf import text_format
 from tensorflow.contrib.tensorboard.plugins.projector.projector_config_pb2 import ProjectorConfig
-from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import resource_loader
 from tensorflow.python.summary import event_multiplexer
 from tensorflow.tensorboard.backend import server
@@ -46,16 +44,15 @@ from tensorflow.tensorboard.plugins import REGISTERED_PLUGINS
 
 
 class TensorboardServerTest(tf.test.TestCase):
-  _only_use_meta_graph = False  # Server data contains only a GraphDef
 
   # Number of scalar-containing events to make.
   _SCALAR_COUNT = 99
 
   def setUp(self):
-    temp_dir = self._GenerateTestData()
+    self._GenerateTestData()
     self._multiplexer = event_multiplexer.EventMultiplexer(
         size_guidance=server.TENSORBOARD_SIZE_GUIDANCE)
-    server.ReloadMultiplexer(self._multiplexer, {temp_dir: None})
+    server.ReloadMultiplexer(self._multiplexer, {self.get_temp_dir(): None})
     # 0 to pick an unused port.
     self._server = server.BuildServer(
         self._multiplexer, 'localhost', 0, '/foo/logdir/argument')
@@ -105,9 +102,10 @@ class TensorboardServerTest(tf.test.TestCase):
     self.assertEqual(response.status, 400)
 
   def testLogdir(self):
-    """Test the format of the data/logdir endpoint."""
-    parsed_object = self._getJson('/data/logdir')
-    self.assertEqual(parsed_object, {'logdir': '/foo/logdir/argument'})
+    """Test the status code and content of the data/logdir endpoint."""
+    response = self._get('/data/logdir')
+    self.assertEqual(response.status, 200)
+    self.assertEqual(response.read().decode('utf-8'), '/foo/logdir/argument')
 
   def testRuns(self):
     """Test the format of the /data/runs endpoint."""
@@ -117,16 +115,13 @@ class TensorboardServerTest(tf.test.TestCase):
     self.assertTrue(isinstance(run_json['run1']['firstEventTimestamp'],
                                numbers.Number))
     del run_json['run1']['firstEventTimestamp']
-    self.assertEqual(run_json, {'run1': {
-        'compressedHistograms': ['histogram'],
-        'scalars': ['simple_values'],
-        'histograms': ['histogram'],
-        'images': ['image'],
-        'audio': ['audio'],
-        # if only_use_meta_graph, the graph is extracted from the metagraph
-        'graph': True,
-        'meta_graph': self._only_use_meta_graph,
-        'run_metadata': ['test run']}})
+    self.assertEqual(run_json, {'run1': {'compressedHistograms': ['histogram'],
+                                         'scalars': ['simple_values'],
+                                         'histograms': ['histogram'],
+                                         'images': ['image'],
+                                         'audio': ['audio'],
+                                         'graph': True,
+                                         'run_metadata': ['test run']}})
 
   def testApplicationPaths_getCached(self):
     """Test the format of the /data/runs endpoint."""
@@ -244,31 +239,32 @@ class TensorboardServerTest(tf.test.TestCase):
       return
 
     info_json = self._getJson('/data/plugin/projector/info?run=run1')
-    self.assertItemsEqual(info_json['embeddings'], [
-        {
-            'tensorShape': [1, 2],
-            'tensorName': 'var1'
+    self.assertEqual(info_json['tensors'], {
+        'var1': {
+            'shape': [1, 2],
+            'name': 'var1',
+            'metadataFile': None
         },
-        {
-            'tensorShape': [10, 10],
-            'tensorName': 'var2'
+        'var2': {
+            'shape': [10, 10],
+            'name': 'var2',
+            'metadataFile': None
         },
-        {
-            'tensorShape': [100, 100],
-            'tensorName': 'var3'
+        'var3': {
+            'shape': [100, 100],
+            'name': 'var3',
+            'metadataFile': None
         }
-    ])
+    })
 
   def testProjectorTensor(self):
     """Test the format of /tensor endpoint in projector."""
     if 'projector' not in REGISTERED_PLUGINS:
       return
 
-    url = '/data/plugin/projector/tensor?run=run1&name=var1'
-    tensor_bytes = self._get(url).read()
-    tensor = np.reshape(np.fromstring(tensor_bytes, dtype='float32'), [1, 2])
-    expected_tensor = np.array([[6, 6]], dtype='float32')
-    self.assertTrue(np.array_equal(tensor, expected_tensor))
+    tensor_tsv = (self._get('/data/plugin/projector/tensor?run=run1&name=var1')
+                  .read())
+    self.assertEqual(tensor_tsv, b'6.0\t6.0')
 
   def testAcceptGzip_compressesResponse(self):
     response = self._get('/data/graph?run=run1&limit_attr_size=1024'
@@ -325,11 +321,8 @@ class TensorboardServerTest(tf.test.TestCase):
      - scalar events containing the value i at step 10 * i and wall time
          100 * i, for i in [1, _SCALAR_COUNT).
      - a graph definition
-
-    Returns:
-      temp_dir: The directory the test data is generated under.
     """
-    temp_dir = tempfile.mkdtemp(prefix=self.get_temp_dir())
+    temp_dir = self.get_temp_dir()
     self.addCleanup(shutil.rmtree, temp_dir)
     run1_path = os.path.join(temp_dir, 'run1')
     os.makedirs(run1_path)
@@ -349,13 +342,7 @@ class TensorboardServerTest(tf.test.TestCase):
     node2 = graph_def.node.add()
     node2.name = 'b'
     node2.attr['very_large_attr'].s = b'a' * 2048  # 2 KB attribute
-
-    meta_graph_def = meta_graph_pb2.MetaGraphDef(graph_def=graph_def)
-
-    if self._only_use_meta_graph:
-      writer.add_meta_graph(meta_graph_def)
-    else:
-      writer.add_graph(graph_def)
+    writer.add_graph(graph_def)
 
     # Add a simple run metadata event.
     run_metadata = tf.RunMetadata()
@@ -402,15 +389,10 @@ class TensorboardServerTest(tf.test.TestCase):
     if 'projector' in REGISTERED_PLUGINS:
       self._GenerateProjectorTestData(run1_path)
 
-    return temp_dir
-
   def _GenerateProjectorTestData(self, run_path):
     # Write a projector config file in run1.
     config_path = os.path.join(run_path, 'projector_config.pbtxt')
     config = ProjectorConfig()
-    embedding = config.embeddings.add()
-    # Add an embedding by its canonical tensor name.
-    embedding.tensor_name = 'var1:0'
     config_pbtxt = text_format.MessageToString(config)
     with tf.gfile.GFile(config_path, 'w') as f:
       f.write(config_pbtxt)
@@ -423,14 +405,9 @@ class TensorboardServerTest(tf.test.TestCase):
           'var1', [1, 2], initializer=tf.constant_initializer(6.0))
       tf.get_variable('var2', [10, 10])
       tf.get_variable('var3', [100, 100])
-      sess.run(tf.global_variables_initializer())
-      saver = tf.train.Saver(write_version=tf.train.SaverDef.V1)
+      sess.run(tf.initialize_all_variables())
+      saver = tf.train.Saver()
       saver.save(sess, checkpoint_path)
-
-
-class TensorboardServerUsingMetagraphOnlyTest(TensorboardServerTest):
-  # Tests new ability to use only the MetaGraphDef
-  _only_use_meta_graph = True  # Server data contains only a MetaGraphDef
 
 
 class ParseEventFilesSpecTest(tf.test.TestCase):
@@ -473,11 +450,6 @@ class ParseEventFilesSpecTest(tf.test.TestCase):
   def testDoesNotNormalizeGCSPath(self):
     logdir_string = 'gs://foo/./path//..'
     expected = {'gs://foo/./path//..': None}
-    self.assertEqual(server.ParseEventFilesSpec(logdir_string), expected)
-
-  def testRunNameWithGCSPath(self):
-    logdir_string = 'lol:gs://foo/path'
-    expected = {'gs://foo/path': 'lol'}
     self.assertEqual(server.ParseEventFilesSpec(logdir_string), expected)
 
 

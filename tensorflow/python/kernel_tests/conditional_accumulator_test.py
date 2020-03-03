@@ -31,6 +31,7 @@ class ConditionalAccumulatorTest(tf.test.TestCase):
     with tf.Graph().as_default():
       q = tf.ConditionalAccumulator(tf.float32, name="Q")
     self.assertTrue(isinstance(q.accumulator_ref, tf.Tensor))
+    self.assertEquals(tf.string_ref, q.accumulator_ref.dtype)
     self.assertProtoEquals("""
       name:'Q' op:'ConditionalAccumulator'
       attr { key: 'dtype' value { type: DT_FLOAT } }
@@ -44,6 +45,7 @@ class ConditionalAccumulatorTest(tf.test.TestCase):
       q = tf.ConditionalAccumulator(
           tf.float32, name="Q", shape=tf.TensorShape([1, 5, 2, 8]))
     self.assertTrue(isinstance(q.accumulator_ref, tf.Tensor))
+    self.assertEquals(tf.string_ref, q.accumulator_ref.dtype)
     self.assertProtoEquals("""
       name:'Q' op:'ConditionalAccumulator'
       attr { key: 'dtype' value { type: DT_FLOAT } }
@@ -297,7 +299,7 @@ class ConditionalAccumulatorTest(tf.test.TestCase):
 
       set_global_step_op = q.set_global_step(new_global_step)
 
-      tf.global_variables_initializer().run()
+      tf.initialize_all_variables().run()
       for _ in range(3):
         set_global_step_op.run()
         inc_global_step.eval()
@@ -408,7 +410,7 @@ class ConditionalAccumulatorTest(tf.test.TestCase):
       self.assertEqual([elems_ave], return_array)
 
   def _blocking_takeg(self, sess, takeg_op):
-    with self.assertRaisesOpError("was cancelled"):
+    with self.assertRaisesOpError("TakeGrad operation was cancelled"):
       sess.run(takeg_op)
 
   def testAccumulatorCancel(self):

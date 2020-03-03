@@ -96,8 +96,7 @@ static Status FeedInputs(Graph* g, const DeviceAttributes& device_info,
       if (e->src_output() == id.second) {
         to_remove.emplace_back(e);
       } else if (e->src_output() == Graph::kControlSlot &&
-                 (n->def().op() == "Placeholder" ||
-                  n->def().op() == "PlaceholderV2")) {
+                 n->def().op() == "Placeholder") {
         // When feeding a Placeholder node, any outgoing control edges
         // will be replaced with a control edge from the replacement
         // recv_node.

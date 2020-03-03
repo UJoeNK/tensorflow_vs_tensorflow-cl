@@ -136,10 +136,9 @@ class AddNOp : public OpKernel {
 TF_CALL_NUMBER_TYPES(REGISTER_ADDN_CPU);
 #undef REGISTER_ADDN_CPU
 
-#if GOOGLE_CUDA
-REGISTER_ADDN(Eigen::half, GPU);
+// #if GOOGLE_CUDA
+// REGISTER_ADDN(Eigen::half, GPU);
 REGISTER_ADDN(float, GPU);
-REGISTER_ADDN(double, GPU);
 
 // A special GPU kernel for int32.
 // TODO(b/25387198): Also enable int32 in device memory. This kernel
@@ -150,7 +149,7 @@ REGISTER_KERNEL_BUILDER(Name("AddN")
                             .HostMemory("inputs")
                             .HostMemory("sum"),
                         AddNOp<CPUDevice, int32>);
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA
 
 #undef REGISTER_ADDN
 

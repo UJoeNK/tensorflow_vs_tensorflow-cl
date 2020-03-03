@@ -25,7 +25,6 @@ from tensorflow.python.util import compat
 
 
 class TFRecordCompressionType(object):
-  """The type of compression for the record."""
   NONE = 0
   ZLIB = 1
   GZIP = 2

@@ -52,22 +52,17 @@ def _test_dir(test_name):
 
 class SupervisorTest(tf.test.TestCase):
 
-  def _wait_for_glob(self, pattern, timeout_secs, for_checkpoint=True):
+  def _wait_for_glob(self, pattern, timeout_secs):
     """Wait for a checkpoint file to appear.
 
     Args:
       pattern: A string.
       timeout_secs: How long to wait for in seconds.
-      for_checkpoint: whether we're globbing for checkpoints.
     """
     end_time = time.time() + timeout_secs
     while time.time() < end_time:
-      if for_checkpoint:
-        if tf.train.checkpoint_exists(pattern):
-          return
-      else:
-        if len(tf.gfile.Glob(pattern)) >= 1:
-          return
+      if len(tf.gfile.Glob(pattern)) >= 1:
+        return
       time.sleep(0.05)
     self.assertFalse(True, "Glob never matched any file: %s" % pattern)
 
@@ -133,10 +128,7 @@ class SupervisorTest(tf.test.TestCase):
   def testManagedSessionDoNotKeepSummaryWriter(self):
     logdir = _test_dir("managed_not_keep_summary_writer")
     with tf.Graph().as_default():
-      tf.summary.scalar("c1", tf.constant(1))
-      tf.summary.scalar("c2", tf.constant(2))
-      tf.summary.scalar("c3", tf.constant(3))
-      summ = tf.summary.merge_all()
+      summ = tf.scalar_summary(["c1", "c2", "c3"], tf.constant([1.0, 2.0, 3.0]))
       sv = tf.train.Supervisor(logdir=logdir, summary_op=None)
       with sv.managed_session("", close_summary_writer=True,
                               start_standard_services=False) as sess:
@@ -185,10 +177,7 @@ class SupervisorTest(tf.test.TestCase):
   def testManagedSessionKeepSummaryWriter(self):
     logdir = _test_dir("managed_keep_summary_writer")
     with tf.Graph().as_default():
-      tf.summary.scalar("c1", tf.constant(1))
-      tf.summary.scalar("c2", tf.constant(2))
-      tf.summary.scalar("c3", tf.constant(3))
-      summ = tf.summary.merge_all()
+      summ = tf.scalar_summary(["c1", "c2", "c3"], tf.constant([1.0, 2.0, 3.0]))
       sv = tf.train.Supervisor(logdir=logdir)
       with sv.managed_session("", close_summary_writer=False,
                               start_standard_services=False) as sess:
@@ -317,10 +306,7 @@ class SupervisorTest(tf.test.TestCase):
   def testChiefCanWriteEvents(self):
     logdir = _test_dir("can_write")
     with tf.Graph().as_default():
-      tf.summary.scalar("c1", tf.constant(1))
-      tf.summary.scalar("c2", tf.constant(2))
-      tf.summary.scalar("c3", tf.constant(3))
-      summ = tf.summary.merge_all()
+      summ = tf.scalar_summary(["c1", "c2", "c3"], tf.constant([1.0, 2.0, 3.0]))
       sv = tf.train.Supervisor(is_chief=True, logdir=logdir, summary_op=None)
       meta_graph_def = meta_graph.create_meta_graph_def()
       sess = sv.prepare_or_wait_for_session("")
@@ -370,9 +356,7 @@ class SupervisorTest(tf.test.TestCase):
       with tf.Graph().as_default():
         sv = tf.train.Supervisor(is_chief=False)
         sess = sv.prepare_or_wait_for_session("")
-        tf.summary.scalar("c1", tf.constant(1))
-        tf.summary.scalar("c2", tf.constant(2))
-        summ = tf.summary.merge_all()
+        summ = tf.scalar_summary(["c1", "c2"], tf.constant([1.0, 2.0]))
         sv.summary_computed(sess, sess.run(summ))
 
     def _start_standard_services():
@@ -386,10 +370,8 @@ class SupervisorTest(tf.test.TestCase):
 
   def testNoLogdirButWantSummary(self):
     with tf.Graph().as_default():
-      tf.summary.scalar("c1", tf.constant(1))
-      tf.summary.scalar("c2", tf.constant(2))
-      tf.summary.scalar("c3", tf.constant(3))
-      summ = tf.summary.merge_all()
+      const = tf.constant([1.0, 2.0, 3.0])
+      summ = tf.scalar_summary(["c1", "c2", "c3"], const)
       sv = tf.train.Supervisor(logdir="", summary_op=None)
       sess = sv.prepare_or_wait_for_session("")
       with self.assertRaisesRegexp(RuntimeError, "requires a summary writer"):
@@ -399,10 +381,8 @@ class SupervisorTest(tf.test.TestCase):
     logdir = _test_dir("explicit_no_summary_writer")
     with tf.Graph().as_default():
       tf.Variable([1.0], name="foo")
-      tf.summary.scalar("c1", tf.constant(1))
-      tf.summary.scalar("c2", tf.constant(2))
-      tf.summary.scalar("c3", tf.constant(3))
-      summ = tf.summary.merge_all()
+      const = tf.constant([1.0, 2.0, 3.0])
+      summ = tf.scalar_summary(["c1", "c2", "c3"], const)
       sv = tf.train.Supervisor(logdir=logdir, summary_writer=None)
       sess = sv.prepare_or_wait_for_session("")
       # Check that a checkpoint is still be generated.
@@ -414,10 +394,8 @@ class SupervisorTest(tf.test.TestCase):
   def testNoLogdirButExplicitSummaryWriter(self):
     logdir = _test_dir("explicit_summary_writer")
     with tf.Graph().as_default():
-      tf.summary.scalar("c1", tf.constant(1))
-      tf.summary.scalar("c2", tf.constant(2))
-      tf.summary.scalar("c3", tf.constant(3))
-      summ = tf.summary.merge_all()
+      const = tf.constant([1.0, 2.0, 3.0])
+      summ = tf.scalar_summary(["c1", "c2", "c3"], const)
       sw = tf.train.SummaryWriter(logdir)
       sv = tf.train.Supervisor(logdir="", summary_op=None, summary_writer=sw)
       meta_graph_def = meta_graph.create_meta_graph_def()
@@ -506,7 +484,7 @@ class SupervisorTest(tf.test.TestCase):
       p = tf.placeholder(tf.float32, shape=(3,))
       v = tf.Variable(p, name="v")
       sv = tf.train.Supervisor(logdir=logdir,
-                               init_op=tf.global_variables_initializer(),
+                               init_op=tf.initialize_all_variables(),
                                init_feed_dict={p: [1.0, 2.0, 3.0]})
       sess = sv.prepare_or_wait_for_session("")
       self.assertAllClose([1.0, 2.0, 3.0], sess.run(v))
@@ -564,13 +542,12 @@ class SupervisorTest(tf.test.TestCase):
     with tf.Graph().as_default():
       v = tf.Variable(
           10.0, name="ready_for_local_init_op_restore_v_" + str(uid))
-      tf.summary.scalar("ready_for_local_init_op_restore_v_" + str(uid), v)
+      tf.scalar_summary("ready_for_local_init_op_restore_v_" + str(uid), v)
       sv = tf.train.Supervisor(logdir=logdir)
       sv.prepare_or_wait_for_session(server.target)
       save_path = sv.save_path
       self._wait_for_glob(save_path, 3.0)
-      self._wait_for_glob(
-          os.path.join(logdir, "*events*"), 3.0, for_checkpoint=False)
+      self._wait_for_glob(os.path.join(logdir, "*events*"), 3.0)
       # Wait to make sure everything is written to file before stopping.
       time.sleep(1)
       sv.stop()
@@ -724,15 +701,14 @@ class SupervisorTest(tf.test.TestCase):
     # Create a checkpoint.
     with tf.Graph().as_default():
       v = tf.Variable([1.0], name="foo")
-      tf.summary.scalar("v", v[0])
+      tf.scalar_summary(["v"], v)
       sv = tf.train.Supervisor(logdir=logdir)
       meta_graph_def = meta_graph.create_meta_graph_def(
           saver_def=sv.saver.saver_def)
       sess = sv.prepare_or_wait_for_session("")
       save_path = sv.save_path
       self._wait_for_glob(save_path, 3.0)
-      self._wait_for_glob(
-          os.path.join(logdir, "*events*"), 3.0, for_checkpoint=False)
+      self._wait_for_glob(os.path.join(logdir, "*events*"), 3.0)
       # Wait to make sure everything is written to file before stopping.
       time.sleep(1)
       sv.stop()
@@ -781,8 +757,7 @@ class SupervisorTest(tf.test.TestCase):
       # This is where the checkpoint will appear, with step number 123.
       save_path = "%s-123" % sv.save_path
       self._wait_for_glob(save_path, 3.0)
-      self._wait_for_glob(
-          os.path.join(logdir, "*events*"), 3.0, for_checkpoint=False)
+      self._wait_for_glob(os.path.join(logdir, "*events*"), 3.0)
       # Wait to make sure everything is written to file before stopping.
       time.sleep(1)
       sv.stop()

@@ -190,9 +190,9 @@ static void SpatialMaxPoolWithArgMaxHelper(
 REGISTER_KERNEL_BUILDER(
     Name("MaxPool").Device(DEVICE_CPU).TypeConstraint<float>("T"),
     MaxPoolingOp<CPUDevice, float>);
-REGISTER_KERNEL_BUILDER(
-    Name("MaxPool").Device(DEVICE_CPU).TypeConstraint<Eigen::half>("T"),
-    MaxPoolingOp<CPUDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(
+//     Name("MaxPool").Device(DEVICE_CPU).TypeConstraint<Eigen::half>("T"),
+//     MaxPoolingOp<CPUDevice, Eigen::half>);
 
 #if GOOGLE_CUDA
 // Forward declarations for the functor specializations for GPU.
@@ -307,9 +307,9 @@ class MaxPoolingGradOp : public OpKernel {
 REGISTER_KERNEL_BUILDER(
     Name("MaxPoolGrad").Device(DEVICE_CPU).TypeConstraint<float>("T"),
     MaxPoolingGradOp<CPUDevice, float>);
-REGISTER_KERNEL_BUILDER(
-    Name("MaxPoolGrad").Device(DEVICE_CPU).TypeConstraint<Eigen::half>("T"),
-    MaxPoolingGradOp<CPUDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(
+//     Name("MaxPoolGrad").Device(DEVICE_CPU).TypeConstraint<Eigen::half>("T"),
+//     MaxPoolingGradOp<CPUDevice, Eigen::half>);
 
 #ifdef GOOGLE_CUDA
 
@@ -406,9 +406,9 @@ class MaxPoolingGradOp<Eigen::GpuDevice, T> : public OpKernel {
 REGISTER_KERNEL_BUILDER(
     Name("MaxPoolGrad").Device(DEVICE_GPU).TypeConstraint<float>("T"),
     MaxPoolingGradOp<Eigen::GpuDevice, float>);
-REGISTER_KERNEL_BUILDER(
-    Name("MaxPoolGrad").Device(DEVICE_GPU).TypeConstraint<Eigen::half>("T"),
-    MaxPoolingGradOp<Eigen::GpuDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(
+//     Name("MaxPoolGrad").Device(DEVICE_GPU).TypeConstraint<Eigen::half>("T"),
+//     MaxPoolingGradOp<Eigen::GpuDevice, Eigen::half>);
 
 #endif  // GOOGLE_CUDA
 
@@ -646,9 +646,9 @@ struct LaunchMaxPoolingNoMask<Eigen::GpuDevice, T> {
 REGISTER_KERNEL_BUILDER(
     Name("MaxPool").Device(DEVICE_GPU).TypeConstraint<float>("T"),
     MaxPoolingNoMaskOp<Eigen::GpuDevice, float>);
-REGISTER_KERNEL_BUILDER(
-    Name("MaxPool").Device(DEVICE_GPU).TypeConstraint<Eigen::half>("T"),
-    MaxPoolingNoMaskOp<Eigen::GpuDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(
+//     Name("MaxPool").Device(DEVICE_GPU).TypeConstraint<Eigen::half>("T"),
+//     MaxPoolingNoMaskOp<Eigen::GpuDevice, Eigen::half>);
 
 template <typename T>
 struct LaunchMaxPoolingWithArgmax<Eigen::GpuDevice, T> {
@@ -674,11 +674,11 @@ REGISTER_KERNEL_BUILDER(Name("MaxPoolWithArgmax")
                             .TypeConstraint<int64>("Targmax")
                             .TypeConstraint<float>("T"),
                         MaxPoolingWithArgmaxOp<Eigen::GpuDevice, float>);
-REGISTER_KERNEL_BUILDER(Name("MaxPoolWithArgmax")
-                            .Device(DEVICE_GPU)
-                            .TypeConstraint<int64>("Targmax")
-                            .TypeConstraint<Eigen::half>("T"),
-                        MaxPoolingWithArgmaxOp<Eigen::GpuDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(Name("MaxPoolWithArgmax")
+//                             .Device(DEVICE_GPU)
+//                             .TypeConstraint<int64>("Targmax")
+//                             .TypeConstraint<Eigen::half>("T"),
+//                         MaxPoolingWithArgmaxOp<Eigen::GpuDevice, Eigen::half>);
 
 template <typename T>
 struct LaunchMaxPoolingGradWithArgmax<Eigen::GpuDevice, T> {
@@ -709,12 +709,12 @@ REGISTER_KERNEL_BUILDER(
         .TypeConstraint<float>("T")
         .TypeConstraint<int64>("Targmax"),
     MaxPoolingGradWithArgmaxOp<Eigen::GpuDevice, float>);
-REGISTER_KERNEL_BUILDER(
-    Name("MaxPoolGradWithArgmax")
-        .Device(DEVICE_GPU)
-        .TypeConstraint<Eigen::half>("T")
-        .TypeConstraint<int64>("Targmax"),
-    MaxPoolingGradWithArgmaxOp<Eigen::GpuDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(
+//     Name("MaxPoolGradWithArgmax")
+//         .Device(DEVICE_GPU)
+//         .TypeConstraint<Eigen::half>("T")
+//         .TypeConstraint<int64>("Targmax"),
+//     MaxPoolingGradWithArgmaxOp<Eigen::GpuDevice, Eigen::half>);
 
 #endif  // GOOGLE_CUDA
 

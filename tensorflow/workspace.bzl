@@ -1,14 +1,11 @@
 # TensorFlow external dependencies that can be loaded in WORKSPACE files.
 
 load("//third_party/gpus:cuda_configure.bzl", "cuda_configure")
-load("//third_party/sycl:sycl_configure.bzl", "sycl_configure")
-
 
 # If TensorFlow is linked as a submodule.
 # path_prefix and tf_repo_name are no longer used.
 def tf_workspace(path_prefix = "", tf_repo_name = ""):
   cuda_configure(name = "local_config_cuda")
-  sycl_configure(name = "local_config_sycl")
   if path_prefix:
     print("path_prefix was specified to tf_workspace but is no longer used and will be removed in the future.")
   if tf_repo_name:
@@ -17,36 +14,36 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   # These lines need to be changed when updating Eigen. They are parsed from
   # this file by the cmake and make builds to determine the eigen version and
   # hash.
-  eigen_version = "62bdceacdafa"
-  eigen_sha256 = "c66f4693a0fd1f5c2cf009e01eb49671ce9cbb56874c3d07d3b8928ffc132cec"
+  eigen_version = "c3496af80cc9"
+  eigen_sha256 = "ad8d6eb831b90fa75640f5fd094a242c11cd09f212a901d8cc86537da77ace85"
 
   native.new_http_archive(
     name = "eigen_archive",
-    url = "http://bitbucket.org/eigen/eigen/get/" + eigen_version + ".tar.gz",
+    url = "http://bitbucket.org/hughperkins/eigen/get/" + eigen_version + ".tar.gz",
     sha256 = eigen_sha256,
-    strip_prefix = "eigen-eigen-" + eigen_version,
+    strip_prefix = "hughperkins-eigen-" + eigen_version,
     build_file = str(Label("//:eigen.BUILD")),
   )
 
   native.http_archive(
     name = "com_googlesource_code_re2",
-    url = "http://github.com/google/re2/archive/b94b7cd42e9f02673cd748c1ac1d16db4052514c.tar.gz",
-    sha256 = "bd63550101e056427c9e7ff12a408c1c8b74e9803f393ca916b2926fc2c4906f",
-    strip_prefix = "re2-b94b7cd42e9f02673cd748c1ac1d16db4052514c",
+    url = "http://github.com/google/re2/archive/7bab3dc83df6a838cc004cc7a7f51d5fe1a427d5.tar.gz",
+    sha256 = "ef91af8850f734c8be65f2774747f4c2d8d81e556ba009faa79b4dd8b2759555",
+    strip_prefix = "re2-7bab3dc83df6a838cc004cc7a7f51d5fe1a427d5",
   )
 
   native.http_archive(
     name = "gemmlowp",
-    url = "http://github.com/google/gemmlowp/archive/a6f29d8ac48d63293f845f2253eccbf86bc28321.tar.gz",
-    sha256 = "75d40ea8e68b0d1644f052fffe8f14a410b2a73d40ccb859a95c0578d194ec26",
-    strip_prefix = "gemmlowp-a6f29d8ac48d63293f845f2253eccbf86bc28321",
+    url = "http://github.com/google/gemmlowp/archive/8b20dd2ce142115857220bd6a35e8a081b3e0829.tar.gz",
+    sha256 = "4fbbf7b8c41dd9d2d2500a594bcda70a5be7b64d607c1556b1be9737b2396e16",
+    strip_prefix = "gemmlowp-8b20dd2ce142115857220bd6a35e8a081b3e0829",
   )
 
   native.new_http_archive(
     name = "farmhash_archive",
-    url = "http://github.com/google/farmhash/archive/92e897b282426729f4724d91a637596c7e2fe28f.zip",
-    sha256 = "4c626d1f306bda2c6804ab955892f803f5245f4dcaecb4979dc08b091256da54",
-    strip_prefix = "farmhash-92e897b282426729f4724d91a637596c7e2fe28f/src",
+    url = "http://github.com/google/farmhash/archive/71a777924015693c69bc3c8c6492fb8d5372c636.zip",
+    sha256 = "99190108fb96a5e38e183f6a23fb7742948214fc96a746a50c79eb09a255a298",
+    strip_prefix = "farmhash-71a777924015693c69bc3c8c6492fb8d5372c636/src",
     build_file = str(Label("//:farmhash.BUILD")),
   )
 
@@ -63,19 +60,11 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   )
 
   native.new_http_archive(
-    name = "nasm",
-    url = "http://pkgs.fedoraproject.org/repo/pkgs/nasm/nasm-2.12.02.tar.bz2/d15843c3fb7db39af80571ee27ec6fad/nasm-2.12.02.tar.bz2",
-    sha256 = "00b0891c678c065446ca59bcee64719d0096d54d6886e6e472aeee2e170ae324",
-    strip_prefix = "nasm-2.12.02",
-    build_file = str(Label("//third_party:nasm.BUILD")),
-  )
-
-  native.new_http_archive(
-    name = "jpeg",
-    url = "https://github.com/libjpeg-turbo/libjpeg-turbo/archive/1.5.1.tar.gz",
-    sha256 = "c15a9607892113946379ccea3ca8b85018301b200754f209453ab21674268e77",
-    strip_prefix = "libjpeg-turbo-1.5.1",
-    build_file = str(Label("//third_party:jpeg.BUILD")),
+    name = "jpeg_archive",
+    url = "http://www.ijg.org/files/jpegsrc.v9a.tar.gz",
+    sha256 = "3a753ea48d917945dd54a2d97de388aa06ca2eb1066cbfdc6652036349fe05a7",
+    strip_prefix = "jpeg-9a",
+    build_file = str(Label("//:jpeg.BUILD")),
   )
 
   native.new_http_archive(
@@ -88,7 +77,7 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
 
   native.new_http_archive(
     name = "gif_archive",
-    url = "http://cdimage.debian.org/mirror/xbmc.org/build-deps/sources/giflib-5.1.4.tar.gz",
+    url = "http://ufpr.dl.sourceforge.net/project/giflib/giflib-5.1.4.tar.gz",
     sha256 = "34a7377ba834397db019e8eb122e551a49c98f49df75ec3fcc92b9a794a4f6d1",
     strip_prefix = "giflib-5.1.4/lib",
     build_file = str(Label("//:gif.BUILD")),
@@ -96,7 +85,7 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
 
   native.new_http_archive(
     name = "six_archive",
-    url = "http://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz",
+    url = "https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz",
     sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
     strip_prefix = "six-1.10.0",
     build_file = str(Label("//:six.BUILD")),
@@ -109,16 +98,14 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
 
   native.http_archive(
     name = "protobuf",
-    url = "http://github.com/google/protobuf/archive/008b5a228b37c054f46ba478ccafa5e855cb16db.tar.gz",
-    sha256 = "2737ad055eb8a9bc63ed068e32c4ea280b62d8236578cb4d4120eb5543f759ab",
-    strip_prefix = "protobuf-008b5a228b37c054f46ba478ccafa5e855cb16db",
+    url = "http://github.com/google/protobuf/archive/v3.1.0.tar.gz",
+    sha256 = "fb2a314f4be897491bb2446697be693d489af645cb0e165a85e7e64e07eb134d",
+    strip_prefix = "protobuf-3.1.0",
   )
 
   native.new_http_archive(
     name = "gmock_archive",
-    url = "http://pkgs.fedoraproject.org/repo/pkgs/gmock/gmock-1.7.0.zip/073b984d8798ea1594f5e44d85b20d66/gmock-1.7.0.zip",
-    sha256 = "26fcbb5925b74ad5fc8c26b0495dfc96353f4d553492eb97e85a8a6d2f43095b",
-    strip_prefix = "gmock-1.7.0",
+    url = "https://github.com/paulsapps/gmock-1.7.0/archive/master.zip",
     build_file = str(Label("//:gmock.BUILD")),
   )
 
@@ -137,22 +124,6 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
     actual = str(Label("//util/python:python_headers")),
   )
 
-  native.new_http_archive(
-    name = "pcre",
-    sha256 = "ccdf7e788769838f8285b3ee672ed573358202305ee361cfec7a4a4fb005bbc7",
-    url = "http://ftp.exim.org/pub/pcre/pcre-8.39.tar.gz",
-    strip_prefix = "pcre-8.39",
-    build_file = str(Label("//third_party:pcre.BUILD")),
-  )
-
-  native.new_http_archive(
-    name = "swig",
-    sha256 = "58a475dbbd4a4d7075e5fe86d4e54c9edde39847cdb96a3053d87cb64a23a453",
-    url = "http://cdimage.debian.org/mirror/xbmc.org/build-deps/sources/swig-3.0.8.tar.gz",
-    strip_prefix = "swig-3.0.8",
-    build_file = str(Label("//third_party:swig.BUILD")),
-  )
-
   # grpc expects //external:protobuf_clib and //external:protobuf_compiler
   # to point to the protobuf's compiler library.
   native.bind(
@@ -168,7 +139,7 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   native.new_http_archive(
     name = "grpc",
     url = "http://github.com/grpc/grpc/archive/d7ff4ff40071d2b486a052183e3e9f9382afb745.tar.gz",
-    sha256 = "a15f352436ab92c521b1ac11e729e155ace38d0856380cf25048c5d1d9ba8e31",
+    sha256 = "81a20a2462cac1df00caa5ea9c05ced4633d657b19ed1ec3c6cf6e4f2bdbfce9",
     strip_prefix = "grpc-d7ff4ff40071d2b486a052183e3e9f9382afb745",
     build_file = str(Label("//:grpc.BUILD")),
   )
@@ -228,9 +199,9 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
 
   native.new_http_archive(
     name = "zlib_archive",
-    url = "http://zlib.net/fossils/zlib-1.2.8.tar.gz",
-    sha256 = "36658cb768a54c1d4dec43c3116c27ed893e88b02ecfcb44f2166f9c0b7f2a0d",
-    strip_prefix = "zlib-1.2.8",
+    url = "http://zlib.net/zlib-1.2.11.tar.gz",
+    sha256 = "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1",
+    strip_prefix = "zlib-1.2.11",
     build_file = str(Label("//:zlib.BUILD")),
   )
 

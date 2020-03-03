@@ -23,4 +23,3 @@ import sys
 
 # pylint: disable=unused-import,wildcard-import
 from tensorflow.contrib.losses.python.losses import *
-# pylint: enable=unused-import,wildcard-import

@@ -97,6 +97,3 @@ pip3 install pep8
 
 # tf.mock require the following for python2:
 pip install mock
-
-pip install portpicker
-pip3 install portpicker

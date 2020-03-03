@@ -1,4 +1,4 @@
-### `tf.constant(value, dtype=None, shape=None, name='Const', verify_shape=False)` {#constant}
+### `tf.constant(value, dtype=None, shape=None, name='Const')` {#constant}
 
 Creates a constant tensor.
 
@@ -43,9 +43,6 @@ Creates a constant tensor.
 
 
 *  <b>`name`</b>: Optional name for the tensor.
-
-
-*  <b>`verify_shape`</b>: Boolean that enables verification of a shape of values.
 
 ##### Returns:
 

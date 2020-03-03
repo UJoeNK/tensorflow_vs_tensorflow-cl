@@ -35,8 +35,8 @@ the metrics and finally call the `evaluation` method:
   })
 
   inital_op = tf.group(
-      tf.global_variables_initializer(),
-      tf.local_variables_initializer())
+      tf.initialize_all_variables(),
+      tf.initialize_local_variables())
 
   with tf.Session() as sess:
     metric_values = slim.evaluation(
@@ -71,7 +71,7 @@ more summaries and call the evaluation_loop method:
 
   # Define the summaries to write:
   for metric_name, metric_value in metrics_to_values.iteritems():
-    tf.summary.scalar(metric_name, metric_value)
+    tf.scalar_summary(metric_name, metric_value)
 
   checkpoint_dir = '/tmp/my_model_dir/'
   log_dir = '/tmp/my_model_eval/'
@@ -101,8 +101,8 @@ with only summaries. The user need only leave out the 'eval_op' argument:
   predictions = MyModel(images)
 
   # Define the summaries to write:
-  tf.summary.scalar(...)
-  tf.summary.histogram(...)
+  tf.scalar_summary(...)
+  tf.histogram_summary(...)
 
   checkpoint_dir = '/tmp/my_model_dir/'
   log_dir = '/tmp/my_model_eval/'
@@ -125,9 +125,8 @@ from __future__ import print_function
 import time
 
 from tensorflow.contrib.framework.python.ops import variables
-from tensorflow.core.protobuf import saver_pb2
-from tensorflow.python import summary
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import logging_ops
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import saver as tf_saver
 from tensorflow.python.training import summary_io
@@ -272,8 +271,8 @@ def evaluation(sess,
       global_step = variables.get_or_create_global_step()
 
     global_step = training_util.global_step(sess, global_step)
-    summary_str = sess.run(summary_op, summary_op_feed_dict)
-    summary_writer.add_summary(summary_str, global_step)
+    summary = sess.run(summary_op, summary_op_feed_dict)
+    summary_writer.add_summary(summary, global_step)
     summary_writer.flush()
 
   return final_op_value
@@ -311,7 +310,7 @@ def evaluate_once(master,
       value of `final_op` is returned.
     final_op_feed_dict: A feed dictionary to use when executing `final_op`.
     summary_op: The summary_op to evaluate after running TF-Slims metric ops. By
-      default the summary_op is set to tf.summary.merge_all().
+      default the summary_op is set to tf.merge_all_summaries().
     summary_op_feed_dict: An optional feed dictionary to use when running the
       `summary_op`.
     variables_to_restore: A list of TensorFlow variables to restore during
@@ -324,13 +323,12 @@ def evaluate_once(master,
     The value of `final_op` or `None` if `final_op` is `None`.
   """
   if summary_op == _USE_DEFAULT:
-    summary_op = summary.merge_all()
+    summary_op = logging_ops.merge_all_summaries()
 
   global_step = variables.get_or_create_global_step()
 
-  saver = tf_saver.Saver(
-      variables_to_restore or variables.get_variables_to_restore(),
-      write_version=saver_pb2.SaverDef.V1)
+  saver = tf_saver.Saver(variables_to_restore or
+                         variables.get_variables_to_restore())
 
   summary_writer = summary_io.SummaryWriter(logdir)
 
@@ -381,8 +379,7 @@ def evaluation_loop(master,
                     variables_to_restore=None,
                     eval_interval_secs=60,
                     max_number_of_evaluations=None,
-                    session_config=None,
-                    timeout=None):
+                    session_config=None):
   """Runs TF-Slim's Evaluation Loop.
 
   Args:
@@ -398,7 +395,7 @@ def evaluation_loop(master,
       value of `final_op` is returned.
     final_op_feed_dict: A feed dictionary to use when executing `final_op`.
     summary_op: The summary_op to evaluate after running TF-Slims metric ops. By
-      default the summary_op is set to tf.summary.merge_all().
+      default the summary_op is set to tf.merge_all_summaries().
     summary_op_feed_dict: An optional feed dictionary to use when running the
       `summary_op`.
     variables_to_restore: A list of TensorFlow variables to restore during
@@ -409,14 +406,12 @@ def evaluation_loop(master,
       If the value is left as 'None', the evaluation continues indefinitely.
     session_config: An instance of `tf.ConfigProto` that will be used to
       configure the `Session`. If left as `None`, the default will be used.
-    timeout: The maximum amount of time to wait between checkpoints. If left as
-      `None`, then the process will wait indefinitely.
 
   Returns:
     The value of `final_op` or `None` if `final_op` is `None`.
   """
   if summary_op == _USE_DEFAULT:
-    summary_op = summary.merge_all()
+    summary_op = logging_ops.merge_all_summaries()
 
   global_step = variables.get_or_create_global_step()
 
@@ -434,8 +429,7 @@ def evaluation_loop(master,
 
   number_of_evaluations = 0
   for checkpoint_path in checkpoints_iterator(checkpoint_dir,
-                                              eval_interval_secs,
-                                              timeout):
+                                              eval_interval_secs):
     logging.info('Starting evaluation at ' + time.strftime('%Y-%m-%d-%H:%M:%S',
                                                            time.gmtime()))
 
@@ -463,8 +457,7 @@ def evaluation_loop(master,
         number_of_evaluations >= max_number_of_evaluations):
       logging.info('Reached max_number_of_evaluations=%s. Exit',
                    max_number_of_evaluations)
-      return final_op_value
+      break
 
-  logging.info(
-      'Timed-out waiting for new checkpoint file. Exiting evaluation loop.')
   return final_op_value
+

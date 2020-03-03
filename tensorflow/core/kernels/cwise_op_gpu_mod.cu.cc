@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace tensorflow {
 namespace functor {
-// TODO(b/32239807) No GPU ops for mod yet.
+// No GPU ops for mod yet.
 }  // namespace functor
 }  // namespace tensorflow
 

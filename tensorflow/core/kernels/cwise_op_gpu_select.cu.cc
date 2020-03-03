@@ -13,10 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#if GOOGLE_CUDA
+// #if GOOGLE_CUDA
 
 #include "tensorflow/core/kernels/cwise_ops_gpu_common.cu.h"
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
 namespace tensorflow {
 namespace functor {
@@ -29,28 +28,6 @@ struct SelectFunctor<GPUDevice, T> {
                   typename TTypes<T>::ConstFlat else_flat) {
     To32Bit(out).device(d) =
         To32Bit(cond_flat).select(To32Bit(then_flat), To32Bit(else_flat));
-  }
-};
-
-template <typename T>
-struct SelectScalarFunctor<GPUDevice, T> {
-  void operator()(const GPUDevice& d, typename TTypes<T>::Flat out,
-                  typename TTypes<bool>::ConstScalar cond,
-                  typename TTypes<T>::ConstFlat then_flat,
-                  typename TTypes<T>::ConstFlat else_flat) {
-
-#if !defined(EIGEN_HAS_INDEX_LIST)
-  Eigen::array<int, 1> rank1{1};
-#else
-  Eigen::IndexList<Eigen::type2index<1>> rank1;
-#endif
-  const int size  = then_flat.dimension(0);
-  Eigen::array<int, 1> broadcast_dims{size};
-
-  To32Bit(out).device(d) = cond.reshape(rank1)
-                               .broadcast(broadcast_dims)
-                               .select(then_flat, else_flat);
-
   }
 };
 
@@ -91,20 +68,19 @@ struct BatchSelectFunctor<GPUDevice, T> {
 
 #define SELECT_FUNCTOR(T)                      \
   template struct SelectFunctor<GPUDevice, T>; \
-  template struct SelectScalarFunctor<GPUDevice, T>; \
   template struct BatchSelectFunctor<GPUDevice, T>;
 
-SELECT_FUNCTOR(Eigen::half);
+// SELECT_FUNCTOR(Eigen::half);
 SELECT_FUNCTOR(float);
-SELECT_FUNCTOR(double);
+// SELECT_FUNCTOR(double);
 SELECT_FUNCTOR(int32);
-SELECT_FUNCTOR(int64);
-SELECT_FUNCTOR(complex64);
-SELECT_FUNCTOR(complex128);
+// SELECT_FUNCTOR(int64);
+// SELECT_FUNCTOR(complex64);
+// SELECT_FUNCTOR(complex128);
 
 #undef SELECT_FUNCTOR
 
 }  // namespace functor
 }  // namespace tensorflow
 
-#endif  // GOOGLE_CUDA
+// #endif  // GOOGLE_CUDA

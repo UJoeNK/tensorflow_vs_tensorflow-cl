@@ -137,21 +137,13 @@ weights: a list of vectors where each value is the weight associated with a
 
 REGISTER_OP("SdcaFprint")
     .Input("input: string")
-    .Output("output: int64")
-    .SetShapeFn([](InferenceContext* c) {
-      ShapeHandle handle;
-      TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 1, &handle));
-      ShapeHandle output_shape;
-      TF_RETURN_IF_ERROR(c->Concatenate(handle, c->Vector(2), &output_shape));
-      c->set_output(0, output_shape);
-      return Status::OK();
-    })
+    .Output("output: string")
+    .SetShapeFn(shape_inference::UnchangedShape)
     .Doc(R"doc(
 Computes fingerprints of the input strings.
 
 input: vector of strings to compute fingerprints on.
-output: a (N,2) shaped matrix where N is the number of elements in the input
-  vector. Each row contains the low and high parts of the fingerprint.
+output: vector containing the computed fingerprints.
 )doc");
 
 }  // namespace tensorflow

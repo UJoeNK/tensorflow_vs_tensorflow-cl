@@ -91,9 +91,6 @@ service MasterService {
   // Extends a session.
   rpc ExtendSession(ExtendSessionRequest) returns (ExtendSessionResponse);
 
-  // Prepares future partial run calls.
-  rpc PartialRunSetup(PartialRunSetupRequest) returns (PartialRunSetupResponse);
-
   // Drives the graph computation.
   rpc RunStep(RunStepRequest) returns (RunStepResponse);
 

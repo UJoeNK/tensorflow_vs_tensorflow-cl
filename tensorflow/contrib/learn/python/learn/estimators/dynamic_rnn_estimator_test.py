@@ -22,7 +22,6 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.contrib.learn.python.learn.estimators import dynamic_rnn_estimator
-from tensorflow.python.ops import rnn_cell
 
 
 class IdentityRNNCell(tf.nn.rnn_cell.RNNCell):
@@ -45,18 +44,18 @@ class IdentityRNNCell(tf.nn.rnn_cell.RNNCell):
 
 class MockTargetColumn(object):
 
-  def __init__(self, num_label_columns=None):
-    self._num_label_columns = num_label_columns
+  def __init__(self):
+    self._num_label_columns = None
 
-  def get_eval_ops(self, features, activations, labels, metrics):
+  def get_eval_ops(self, features, activations, targets, metrics):
     raise NotImplementedError(
         'MockTargetColumn.get_eval_ops called unexpectedly.')
 
-  def logits_to_predictions(self, flattened_activations, proba=False):
+  def activations_to_predictions(self, flattened_activations, proba=False):
     raise NotImplementedError(
-        'MockTargetColumn.logits_to_predictions called unexpectedly.')
+        'MockTargetColumn.activations_to_predictions called unexpectedly.')
 
-  def loss(self, activations, labels, features):
+  def loss(self, activations, targets, features):
     raise NotImplementedError('MockTargetColumn.loss called unexpectedly.')
 
   @property
@@ -89,91 +88,85 @@ def sequence_length_mask(values, lengths):
 
 class DynamicRnnEstimatorTest(tf.test.TestCase):
 
-  NUM_RNN_CELL_UNITS = 8
-  NUM_LABEL_COLUMNS = 6
-  INPUTS_COLUMN = tf.contrib.layers.real_valued_column(
-      'inputs', dimension=NUM_LABEL_COLUMNS)
+  CELL_STATE_SIZE = 8
+  CELL_OUTPUT_SIZE = 6
 
   def setUp(self):
-    self.rnn_cell = rnn_cell.BasicRNNCell(self.NUM_RNN_CELL_UNITS)
-    self.mock_target_column = MockTargetColumn(
-        num_label_columns=self.NUM_LABEL_COLUMNS)
-
-    location = tf.contrib.layers.sparse_column_with_keys(
-        'location', keys=['west_side', 'east_side', 'nyc'])
-    location_onehot = tf.contrib.layers.one_hot_column(location)
-    self.context_feature_columns = [location_onehot]
-
-    wire_cast = tf.contrib.layers.sparse_column_with_keys(
-        'wire_cast', ['marlo', 'omar', 'stringer'])
-    wire_cast_embedded = tf.contrib.layers.embedding_column(
-        wire_cast, dimension=8)
-    measurements = tf.contrib.layers.real_valued_column(
-        'measurements', dimension=2)
-    self.sequence_feature_columns = [measurements, wire_cast_embedded]
-
-    self.columns_to_tensors = {
-        'location': tf.SparseTensor(
-            indices=[[0, 0], [1, 0], [2, 0]],
-            values=['west_side', 'west_side', 'nyc'],
-            shape=[3, 1]),
-        'wire_cast': tf.SparseTensor(
-            indices=[[0, 0, 0], [0, 1, 0],
-                     [1, 0, 0], [1, 1, 0], [1, 1, 1],
-                     [2, 0, 0]],
-            values=[b'marlo', b'stringer',
-                    b'omar', b'stringer', b'marlo',
-                    b'marlo'],
-            shape=[3, 2, 2]),
-        'measurements': tf.random_uniform([3, 2, 2])}
-
-  def testBuildSequenceInputInput(self):
-    sequence_input = dynamic_rnn_estimator.build_sequence_input(
-        self.columns_to_tensors,
-        self.sequence_feature_columns,
-        self.context_feature_columns)
-    with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
-      sess.run(tf.initialize_all_tables())
-      sequence_input_val = sess.run(sequence_input)
-    expected_shape = np.array([
-        3,         # expected batch size
-        2,         # padded sequence length
-        3 + 8 + 2  # location keys + embedding dim + measurement dimension
-    ])
-    self.assertAllEqual(expected_shape, sequence_input_val.shape)
+    self._rnn_cell = IdentityRNNCell(self.CELL_STATE_SIZE,
+                                     self.CELL_OUTPUT_SIZE)
+    self._mock_target_column = MockTargetColumn()
+    self._rnn_estimator = dynamic_rnn_estimator._MultiValueRNNEstimator(
+        cell=self._rnn_cell,
+        target_column=self._mock_target_column,
+        optimizer=tf.train.GradientDescentOptimizer(0.1))
 
   def testConstructRNN(self):
-    initial_state = None
-    sequence_input = dynamic_rnn_estimator.build_sequence_input(
-        self.columns_to_tensors,
-        self.sequence_feature_columns,
-        self.context_feature_columns)
-    activations_t, final_state_t = dynamic_rnn_estimator.construct_rnn(
-        initial_state,
-        sequence_input,
-        self.rnn_cell,
-        self.mock_target_column.num_label_columns)
+    """Test `DynamicRNNEstimator._construct_rnn`."""
+    batch_size = 4
+    padded_length = 6
+    num_classes = 4
 
-    # Obtain values of activations and final state.
+    # Set up mocks
+    self._mock_target_column.set_num_label_columns(num_classes)
+    np.random.seed(111)
+    mock_linear_layer_output = np.random.rand(
+        batch_size, padded_length, num_classes)
+
+    # Create features
+    inputs = np.random.rand(batch_size, padded_length, self.CELL_OUTPUT_SIZE)
+    sequence_length = np.random.randint(0, padded_length + 1, batch_size)
+    features = {'inputs': tf.constant(
+        inputs, dtype=tf.float32),
+                'sequence_length': tf.constant(
+                    sequence_length, dtype=tf.int32)}
+
+    # Map feature to activations with mocked linear layer.
+    with tf.test.mock.patch.object(dynamic_rnn_estimator,
+                                   'layers') as mock_layers:
+      mock_layers.fully_connected.return_value = tf.constant(
+          mock_linear_layer_output, dtype=tf.float32)
+      activations_t, final_state_t = self._rnn_estimator._construct_rnn(
+          features)
+      _, fully_connected_kwargs = mock_layers.fully_connected.call_args
+      linear_layer_inputs_t = fully_connected_kwargs['inputs']
+      linear_layer_output_dim = fully_connected_kwargs['num_outputs']
+
+    # Obtain values of linear layer input, activations and final state.
     with tf.Session() as sess:
-      sess.run(tf.global_variables_initializer())
-      sess.run(tf.initialize_all_tables())
-      activations, final_state = sess.run([activations_t, final_state_t])
+      sess.run(tf.initialize_all_variables())
+      linear_layer_inputs, activations, final_state = sess.run(
+          [linear_layer_inputs_t, activations_t, final_state_t])
 
-    expected_activations_shape = np.array([3, 2, self.NUM_LABEL_COLUMNS])
-    self.assertAllEqual(expected_activations_shape, activations.shape)
-    expected_state_shape = np.array([3, self.NUM_RNN_CELL_UNITS])
-    self.assertAllEqual(expected_state_shape, final_state.shape)
+    np.testing.assert_equal(num_classes, linear_layer_output_dim)
+    np.testing.assert_almost_equal(inputs, linear_layer_inputs)
+    np.testing.assert_almost_equal(mock_linear_layer_output, activations)
+    np.testing.assert_almost_equal(
+        np.zeros([batch_size, self._rnn_cell.state_size], dtype=float),
+        final_state)
+
+
+class MultiValueRNNEstimatorTest(tf.test.TestCase):
+  """Tests for `_MultiValueRNNEstimator` class."""
+  CELL_STATE_SIZE = 8
+  CELL_OUTPUT_SIZE = 6
+
+  def setUp(self):
+    self._rnn_cell = IdentityRNNCell(self.CELL_STATE_SIZE,
+                                     self.CELL_OUTPUT_SIZE)
+    self._mock_target_column = MockTargetColumn()
+    self._seq_estimator = dynamic_rnn_estimator._MultiValueRNNEstimator(
+        cell=self._rnn_cell,
+        target_column=self._mock_target_column,
+        optimizer=tf.train.GradientDescentOptimizer(0.1))
 
   def testPaddingMask(self):
-    """Test `padding_mask`."""
+    """Test `_padding_mask`."""
     batch_size = 16
     padded_length = 32
     np.random.seed(1234)
     sequence_lengths = np.random.randint(0, padded_length + 1, batch_size)
 
-    padding_mask_t = dynamic_rnn_estimator.padding_mask(
+    padding_mask_t = dynamic_rnn_estimator._padding_mask(
         tf.constant(sequence_lengths, dtype=tf.int32),
         tf.constant(padded_length, dtype=tf.int32))
 
@@ -190,27 +183,27 @@ class DynamicRnnEstimatorTest(tf.test.TestCase):
                               'Mismatch on row {}. Got {}; expected {}.'.format(
                                   i, actual_mask, expected_mask))
 
-  def testMaskActivationsAndLabels(self):
-    """Test `mask_activations_and_labels`."""
+  def testMaskActivationsAndTargets(self):
+    """Test `_mask_activations_and_targets`."""
     batch_size = 4
     padded_length = 6
     num_classes = 4
     np.random.seed(1234)
     sequence_length = np.random.randint(0, padded_length + 1, batch_size)
     activations = np.random.rand(batch_size, padded_length, num_classes)
-    labels = np.random.randint(0, num_classes, [batch_size, padded_length])
+    targets = np.random.randint(0, num_classes, [batch_size, padded_length])
     (activations_masked_t,
-     labels_masked_t) = dynamic_rnn_estimator.mask_activations_and_labels(
+     targets_masked_t) = dynamic_rnn_estimator._mask_activations_and_targets(
          tf.constant(
              activations, dtype=tf.float32),
          tf.constant(
-             labels, dtype=tf.int32),
+             targets, dtype=tf.int32),
          tf.constant(
              sequence_length, dtype=tf.int32))
 
     with tf.Session() as sess:
-      activations_masked, labels_masked = sess.run(
-          [activations_masked_t, labels_masked_t])
+      activations_masked, targets_masked = sess.run(
+          [activations_masked_t, targets_masked_t])
 
     expected_activations_shape = [sum(sequence_length), num_classes]
     np.testing.assert_equal(
@@ -218,10 +211,10 @@ class DynamicRnnEstimatorTest(tf.test.TestCase):
         'Wrong activations shape. Expected {}; got {}.'.format(
             expected_activations_shape, activations_masked.shape))
 
-    expected_labels_shape = [sum(sequence_length)]
-    np.testing.assert_equal(expected_labels_shape, labels_masked.shape,
-                            'Wrong labels shape. Expected {}; got {}.'.format(
-                                expected_labels_shape, labels_masked.shape))
+    expected_targets_shape = [sum(sequence_length)]
+    np.testing.assert_equal(expected_targets_shape, targets_masked.shape,
+                            'Wrong targets shape. Expected {}; got {}.'.format(
+                                expected_targets_shape, targets_masked.shape))
     masked_index = 0
     for i in range(batch_size):
       for j in range(sequence_length[i]):
@@ -234,53 +227,48 @@ class DynamicRnnEstimatorTest(tf.test.TestCase):
             '  Expected {}; got {}.'.format(i, j, expected_activations,
                                             actual_activations))
 
-        actual_labels = labels_masked[masked_index]
-        expected_labels = labels[i, j]
+        actual_targets = targets_masked[masked_index]
+        expected_targets = targets[i, j]
         np.testing.assert_almost_equal(
-            expected_labels,
-            actual_labels,
+            expected_targets,
+            actual_targets,
             err_msg='Unexpected logit value at index [{}, {}].'
-            ' Expected {}; got {}.'.format(i, j, expected_labels,
-                                           actual_labels))
+            ' Expected {}; got {}.'.format(i, j, expected_targets,
+                                           actual_targets))
         masked_index += 1
 
-  def testSelectLastActivations(self):
-    """Test `select_last_activations`."""
-    batch_size = 4
-    padded_length = 6
-    num_classes = 4
-    np.random.seed(4444)
-    sequence_length = np.random.randint(0, padded_length + 1, batch_size)
-    activations = np.random.rand(batch_size, padded_length, num_classes)
-    last_activations_t = dynamic_rnn_estimator.select_last_activations(
-        tf.constant(activations, dtype=tf.float32),
-        tf.constant(sequence_length, dtype=tf.int32))
+  def testActivationsToPredictions(self):
+    """Test `DynamicRNNEstimator._activations_to_predictions`."""
+    batch_size = 8
+    sequence_length = 16
+    num_classes = 3
+
+    np.random.seed(10101)
+    activations = np.random.rand(batch_size, sequence_length, num_classes)
+    flattened_activations = np.reshape(activations, [-1, num_classes])
+    flattened_argmax = np.argmax(flattened_activations, axis=1)
+    expected_predictions = np.argmax(activations, axis=2)
+
+    with tf.test.mock.patch.object(
+        self._mock_target_column,
+        'activations_to_predictions',
+        return_value=flattened_argmax,
+        autospec=True) as mock_activations_to_predictions:
+      predictions_t = self._seq_estimator._activations_to_predictions(
+          None, tf.constant(activations, dtype=tf.float32))
+      (target_column_input_activations_t,
+      ), _ = mock_activations_to_predictions.call_args
 
     with tf.Session() as sess:
-      last_activations = sess.run(last_activations_t)
+      target_column_input_activations, predictions = sess.run(
+          [target_column_input_activations_t, predictions_t])
 
-    expected_activations_shape = [batch_size, num_classes]
-    np.testing.assert_equal(
-        expected_activations_shape, last_activations.shape,
-        'Wrong activations shape. Expected {}; got {}.'.format(
-            expected_activations_shape, last_activations.shape))
-
-    for i in range(batch_size):
-      actual_activations = last_activations[i, :]
-      expected_activations = activations[i, sequence_length[i] - 1, :]
-      np.testing.assert_almost_equal(
-          expected_activations,
-          actual_activations,
-          err_msg='Unexpected logit value at index [{}, :].'
-          '  Expected {}; got {}.'.format(i, expected_activations,
-                                          actual_activations))
-
-# TODO(jamieas): move all tests below to a benchmark test.
-class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
-  """Learning tests for dymanic RNN Estimators."""
+    np.testing.assert_almost_equal(flattened_activations,
+                                   target_column_input_activations)
+    np.testing.assert_equal(expected_predictions, predictions)
 
   def testLearnSineFunction(self):
-    """Tests learning a sine function."""
+    """Tests that `_MultiValueRNNEstimator` can learn a sine function."""
     batch_size = 8
     sequence_length = 64
     train_steps = 200
@@ -306,16 +294,9 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
 
       return input_fn
 
-    seq_columns = [tf.contrib.layers.real_valued_column(
-        'inputs', dimension=cell_size)]
     config = tf.contrib.learn.RunConfig(tf_random_seed=1234)
     sequence_estimator = dynamic_rnn_estimator.multi_value_rnn_regressor(
-        num_units=cell_size,
-        sequence_feature_columns=seq_columns,
-        learning_rate=learning_rate,
-        input_keep_probability=0.9,
-        output_keep_probability=0.9,
-        config=config)
+        num_units=cell_size, learning_rate=learning_rate, config=config)
 
     train_input_fn = get_sin_input_fn(
         batch_size, sequence_length, np.pi / 32, seed=1234)
@@ -330,7 +311,7 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
                         loss_threshold, loss))
 
   def testLearnShiftByOne(self):
-    """Tests that learning a 'shift-by-one' example.
+    """Tests that `_MultiValueRNNEstimator` can learn a 'shift-by-one' example.
 
     Each label sequence consists of the input sequence 'shifted' by one place.
     The RNN must learn to 'remember' the previous input.
@@ -355,22 +336,17 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
         return {'inputs': inputs}, labels
       return input_fn
 
-    seq_columns = [tf.contrib.layers.real_valued_column(
-        'inputs', dimension=cell_size)]
     config = tf.contrib.learn.RunConfig(tf_random_seed=21212)
     sequence_estimator = dynamic_rnn_estimator.multi_value_rnn_classifier(
         num_classes=2,
         num_units=cell_size,
-        sequence_feature_columns=seq_columns,
         learning_rate=learning_rate,
-        config=config,
-        predict_probabilities=True)
+        config=config)
 
     train_input_fn = get_shift_input_fn(batch_size, sequence_length, seed=12321)
     eval_input_fn = get_shift_input_fn(batch_size, sequence_length, seed=32123)
 
     sequence_estimator.fit(input_fn=train_input_fn, steps=train_steps)
-
     evaluation = sequence_estimator.evaluate(
         input_fn=eval_input_fn, steps=eval_steps)
     accuracy = evaluation['accuracy']
@@ -378,23 +354,42 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
                        'Accuracy should be higher than {}; got {}'.format(
                            accuracy_threshold, accuracy))
 
-    # Testing `predict` when `predict_probabilities=True`.
-    prediction_dict = sequence_estimator.predict(
-        input_fn=eval_input_fn, as_iterable=False)
-    self.assertListEqual(
-        sorted(list(prediction_dict.keys())),
-        sorted([dynamic_rnn_estimator.RNNKeys.PREDICTIONS_KEY,
-                dynamic_rnn_estimator.RNNKeys.PROBABILITIES_KEY,
-                dynamic_rnn_estimator.RNNKeys.FINAL_STATE_KEY]))
-    predictions = prediction_dict[dynamic_rnn_estimator.RNNKeys.PREDICTIONS_KEY]
-    probabilities = prediction_dict[
-        dynamic_rnn_estimator.RNNKeys.PROBABILITIES_KEY]
-    self.assertListEqual(list(predictions.shape), [batch_size, sequence_length])
-    self.assertListEqual(
-        list(probabilities.shape), [batch_size, sequence_length, 2])
+
+class SingleValueRNNEstimatorTest(tf.test.TestCase):
+
+  def testSelectLastactivations(self):
+    """Test `_select_last_activations`."""
+    batch_size = 4
+    padded_length = 6
+    num_classes = 4
+    np.random.seed(4444)
+    sequence_length = np.random.randint(0, padded_length + 1, batch_size)
+    activations = np.random.rand(batch_size, padded_length, num_classes)
+    last_activations_t = dynamic_rnn_estimator._select_last_activations(
+        tf.constant(activations, dtype=tf.float32),
+        tf.constant(sequence_length, dtype=tf.int32))
+
+    with tf.Session() as sess:
+      last_activations = sess.run(last_activations_t)
+
+    expected_activations_shape = [batch_size, num_classes]
+    np.testing.assert_equal(
+        expected_activations_shape, last_activations.shape,
+        'Wrong activations shape. Expected {}; got {}.'.format(
+            expected_activations_shape, last_activations.shape))
+
+    for i in range(batch_size):
+      actual_activations = last_activations[i, :]
+      expected_activations = activations[i, sequence_length[i] - 1, :]
+      np.testing.assert_almost_equal(
+          expected_activations,
+          actual_activations,
+          err_msg='Unexpected logit value at index [{}, :].'
+          '  Expected {}; got {}.'.format(i, expected_activations,
+                                          actual_activations))
 
   def testLearnMean(self):
-    """Test learning to calculate a mean."""
+    """Test that `_SequenceRegressor` can learn to calculate a mean."""
     batch_size = 16
     sequence_length = 3
     train_steps = 200
@@ -402,7 +397,7 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
     cell_type = 'basic_rnn'
     cell_size = 8
     optimizer_type = 'Momentum'
-    learning_rate = 0.1
+    learning_rate = 0.5
     momentum = 0.9
     loss_threshold = 0.1
 
@@ -426,12 +421,9 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
         return {'inputs': inputs}, labels
       return input_fn
 
-    seq_columns = [tf.contrib.layers.real_valued_column(
-        'inputs', dimension=cell_size)]
     config = tf.contrib.learn.RunConfig(tf_random_seed=6)
     sequence_regressor = dynamic_rnn_estimator.single_value_rnn_regressor(
         num_units=cell_size,
-        sequence_feature_columns=seq_columns,
         cell_type=cell_type,
         optimizer_type=optimizer_type,
         learning_rate=learning_rate,
@@ -450,7 +442,7 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
                         loss_threshold, loss))
 
   def testLearnMajority(self):
-    """Test learning the 'majority' function."""
+    """Test that `_SequenceClassifier` can learn the 'majority' function."""
     batch_size = 16
     sequence_length = 7
     train_steps = 200
@@ -475,19 +467,15 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
         return {'inputs': inputs}, labels
       return input_fn
 
-    seq_columns = [tf.contrib.layers.real_valued_column(
-        'inputs', dimension=cell_size)]
     config = tf.contrib.learn.RunConfig(tf_random_seed=77)
     sequence_classifier = dynamic_rnn_estimator.single_value_rnn_classifier(
         num_classes=2,
         num_units=cell_size,
-        sequence_feature_columns=seq_columns,
         cell_type=cell_type,
         optimizer_type=optimizer_type,
         learning_rate=learning_rate,
         momentum=momentum,
-        config=config,
-        predict_probabilities=True)
+        config=config)
 
     train_input_fn = get_majority_input_fn(batch_size, sequence_length, 1111)
     eval_input_fn = get_majority_input_fn(batch_size, sequence_length, 2222)
@@ -500,19 +488,6 @@ class DynamicRNNEstimatorLearningTest(tf.test.TestCase):
                        'Accuracy should be higher than {}; got {}'.format(
                            accuracy_threshold, accuracy))
 
-    # Testing `predict` when `predict_probabilities=True`.
-    prediction_dict = sequence_classifier.predict(
-        input_fn=eval_input_fn, as_iterable=False)
-    self.assertListEqual(
-        sorted(list(prediction_dict.keys())),
-        sorted([dynamic_rnn_estimator.RNNKeys.PREDICTIONS_KEY,
-                dynamic_rnn_estimator.RNNKeys.PROBABILITIES_KEY,
-                dynamic_rnn_estimator.RNNKeys.FINAL_STATE_KEY]))
-    predictions = prediction_dict[dynamic_rnn_estimator.RNNKeys.PREDICTIONS_KEY]
-    probabilities = prediction_dict[
-        dynamic_rnn_estimator.RNNKeys.PROBABILITIES_KEY]
-    self.assertListEqual(list(predictions.shape), [batch_size])
-    self.assertListEqual(list(probabilities.shape), [batch_size, 2])
 
 if __name__ == '__main__':
   tf.test.main()

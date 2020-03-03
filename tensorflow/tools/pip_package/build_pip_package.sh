@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2015 The TensorFlow Authors, 2016 Hugh Perkins. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,16 +25,6 @@ function cp_external() {
   done
 }
 
-PLATFORM="$(uname -s | tr 'A-Z' 'a-z')"
-function is_windows() {
-  # On windows, the shell script is actually running in msys
-  if [[ "${PLATFORM}" =~ msys_nt* ]]; then
-    true
-  else
-    false
-  fi
-}
-
 function main() {
   if [ $# -lt 1 ] ; then
     echo "No destination dir provided"
@@ -44,18 +34,6 @@ function main() {
   DEST=$1
   TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
 
-  GPU_FLAG=""
-  while true; do
-    if [[ "$1" == "--gpu" ]]; then
-      GPU_FLAG="--project_name tensorflow_gpu"
-    fi
-    shift
-
-    if [[ -z "$1" ]]; then
-      break
-    fi
-  done
-
   echo $(date) : "=== Using tmpdir: ${TMPDIR}"
 
   if [ ! -d bazel-bin/tensorflow ]; then
@@ -63,23 +41,7 @@ function main() {
     exit 1
   fi
 
-  if is_windows; then
-    rm -rf ./bazel-bin/tensorflow/tools/pip_package/simple_console_for_window_unzip
-    mkdir -p ./bazel-bin/tensorflow/tools/pip_package/simple_console_for_window_unzip
-    echo "Unzipping simple_console_for_windows.zip to create runfiles tree..."
-    unzip -o -q ./bazel-bin/tensorflow/tools/pip_package/simple_console_for_windows.zip -d ./bazel-bin/tensorflow/tools/pip_package/simple_console_for_window_unzip
-    echo "Unzip finished."
-    # runfiles structure after unzip the python binary
-    cp -R \
-      bazel-bin/tensorflow/tools/pip_package/simple_console_for_window_unzip/runfiles/org_tensorflow/tensorflow \
-      "${TMPDIR}"
-    mkdir "${TMPDIR}/external"
-    # Note: this makes an extra copy of org_tensorflow.
-    cp_external \
-      bazel-bin/tensorflow/tools/pip_package/simple_console_for_window_unzip/runfiles \
-      "${TMPDIR}/external"
-    RUNFILES=bazel-bin/tensorflow/tools/pip_package/simple_console_for_window_unzip/runfiles/org_tensorflow
-  elif [ ! -d bazel-bin/tensorflow/tools/pip_package/build_pip_package.runfiles/org_tensorflow ]; then
+  if [ ! -d bazel-bin/tensorflow/tools/pip_package/build_pip_package.runfiles/org_tensorflow ]; then
     # Really old (0.2.1-) runfiles, without workspace name.
     cp -R \
       bazel-bin/tensorflow/tools/pip_package/build_pip_package.runfiles/tensorflow \
@@ -116,31 +78,48 @@ function main() {
   # protobuf pip package doesn't ship with header files. Copy the headers
   # over so user defined ops can be compiled.
   mkdir -p ${TMPDIR}/google
-  mkdir -p ${TMPDIR}/third_party
-  pushd ${RUNFILES%org_tensorflow}
-  for header in $(find protobuf -name \*.h); do
-    mkdir -p "${TMPDIR}/google/$(dirname ${header})"
-    cp "$header" "${TMPDIR}/google/$(dirname ${header})/"
-  done
-  popd
-  cp -R $RUNFILES/third_party/eigen3 ${TMPDIR}/third_party
+  rsync --include "*/" --exclude "*" --prune-empty-dirs -a \
+    $RUNFILES/external/protobuf ${TMPDIR}/google
+  # rsync -a $RUNFILES/third_party/eigen3 ${TMPDIR}/third_party
 
+  PLATFORM=`uname`
+  echo PLATFORM ${PLATFORM}
+  if [[ $PLATFORM == Darwin ]]; then {
+    echo Mac platform
+    SO_SUFFIX=dylib
+  } else {
+    echo Linux platform
+    SO_SUFFIX=so
+  } fi
+  mkdir -p ${TMPDIR}/tensorflow/third_party/coriander
+  cp third_party/coriander/build/libcocl.${SO_SUFFIX} ${TMPDIR}/tensorflow/third_party/coriander/ || true
+  cp third_party/coriander/build/libeasycl.${SO_SUFFIX} ${TMPDIR}/tensorflow/third_party/coriander/ || true
+  cp third_party/coriander/build/libclew.${SO_SUFFIX} ${TMPDIR}/tensorflow/third_party/coriander/ || true
+  cp third_party/coriander/build/libclblast.${SO_SUFFIX} ${TMPDIR}/tensorflow/third_party/coriander/ || true
+  ls ${TMPDIR}/tensorflow/third_party/coriander
+  touch ${TMPDIR}/tensorflow/third_party/__init__.py
+  touch ${TMPDIR}/tensorflow/third_party/coriander/__init__.py
   cp tensorflow/tools/pip_package/MANIFEST.in ${TMPDIR}
   cp tensorflow/tools/pip_package/README ${TMPDIR}
   cp tensorflow/tools/pip_package/setup.py ${TMPDIR}
+
+  if [[ $PLATFORM == Darwin ]]; then {
+    bash util/mac_fixrpath.sh ${TMPDIR}/tensorflow
+  } fi
 
   # Before we leave the top-level directory, make sure we know how to
   # call python.
   source tools/python_bin_path.sh
 
   pushd ${TMPDIR}
-  rm -f MANIFEST
+  # rm -f MANIFEST
   echo $(date) : "=== Building wheel"
-  "${PYTHON_BIN_PATH:-python}" setup.py bdist_wheel ${GPU_FLAG} >/dev/null
+  ${PYTHON_BIN_PATH:-python} setup.py bdist_wheel >/dev/null
   mkdir -p ${DEST}
   cp dist/* ${DEST}
   popd
-  rm -rf ${TMPDIR}
+  echo ${TMPDIR}
+  # rm -rf ${TMPDIR}
   echo $(date) : "=== Output wheel file is in: ${DEST}"
 }
 

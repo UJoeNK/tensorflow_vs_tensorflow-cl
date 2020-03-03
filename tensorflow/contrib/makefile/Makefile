@@ -73,7 +73,6 @@ HOST_INCLUDES := \
 -I. \
 -I$(MAKEFILE_DIR)/downloads/ \
 -I$(MAKEFILE_DIR)/downloads/eigen \
-  -I$(MAKEFILE_DIR)/downloads/gemmlowp \
 -I$(HOST_GENDIR)
 ifeq ($(HAS_GEN_HOST_PROTOC),true)
 	HOST_INCLUDES += -I$(MAKEFILE_DIR)/gen/protobuf-host/include
@@ -137,8 +136,8 @@ $(shell mkdir -p $(DEPDIR) >/dev/null)
 
 # Settings for the target compiler.
 CXX := $(CC_PREFIX) gcc
-OPTFLAGS := -O2
-CXXFLAGS := --std=c++11 -DIS_SLIM_BUILD -fno-exceptions -DNDEBUG -DNOTFDBG $(OPTFLAGS)
+OPTFLAGS := -O0
+CXXFLAGS := --std=c++11 -DIS_SLIM_BUILD -fno-exceptions -DNDEBUG $(OPTFLAGS)
 LDFLAGS := \
 -L/usr/local/lib
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
@@ -147,7 +146,6 @@ INCLUDES := \
 -I. \
 -I$(MAKEFILE_DIR)/downloads/ \
 -I$(MAKEFILE_DIR)/downloads/eigen \
--I$(MAKEFILE_DIR)/downloads/gemmlowp \
 -I$(PROTOGENDIR) \
 -I$(PBTGENDIR)
 ifeq ($(HAS_GEN_HOST_PROTOC),true)
@@ -231,8 +229,6 @@ ifeq ($(TARGET),ANDROID)
 --sysroot $(NDK_ROOT)/platforms/android-21/arch-arm \
 -Wno-narrowing \
 -march=armv7-a \
--mfloat-abi=softfp \
--mfpu=neon \
 -fPIE
 
 	INCLUDES = \
@@ -242,7 +238,6 @@ ifeq ($(TARGET),ANDROID)
 -I. \
 -I$(MAKEFILE_DIR)/downloads/ \
 -I$(MAKEFILE_DIR)/downloads/eigen \
--I$(MAKEFILE_DIR)/downloads/gemmlowp \
 -I$(MAKEFILE_DIR)/gen/protobuf/include \
 -I$(PROTOGENDIR) \
 -I$(PBTGENDIR)
@@ -298,6 +293,7 @@ ifeq ($(TARGET),IOS)
 		-mno-thumb \
 		-DTF_LEAN_BINARY \
 		-D__ANDROID_TYPES_SLIM__ \
+		-DMIN_LOG_LEVEL=0 \
 		-fno-exceptions \
 		-isysroot \
 		${IPHONEOS_SYSROOT}
@@ -320,6 +316,7 @@ ifeq ($(TARGET),IOS)
 		-mno-thumb \
 		-DTF_LEAN_BINARY \
 		-D__ANDROID_TYPES_SLIM__ \
+		-DMIN_LOG_LEVEL=0 \
 		-fno-exceptions \
 		-isysroot \
 		${IPHONEOS_SYSROOT}
@@ -341,6 +338,7 @@ ifeq ($(TARGET),IOS)
 		-Wno-c++11-narrowing \
 		-DTF_LEAN_BINARY \
 		-D__ANDROID_TYPES_SLIM__ \
+		-DMIN_LOG_LEVEL=0 \
 		-fno-exceptions \
 		-isysroot \
 		${IPHONEOS_SYSROOT}
@@ -362,6 +360,7 @@ ifeq ($(TARGET),IOS)
 		-Wno-c++11-narrowing \
 		-DTF_LEAN_BINARY \
 		-D__ANDROID_TYPES_SLIM__ \
+		-DMIN_LOG_LEVEL=0 \
 		-fno-exceptions \
 		-isysroot \
 		${IPHONESIMULATOR_SYSROOT}
@@ -383,6 +382,7 @@ ifeq ($(TARGET),IOS)
 		-Wno-c++11-narrowing \
 		-DTF_LEAN_BINARY \
 		-D__ANDROID_TYPES_SLIM__ \
+		-DMIN_LOG_LEVEL=0 \
 		-fno-exceptions \
 		-isysroot \
 		${IPHONESIMULATOR_SYSROOT}
@@ -416,6 +416,7 @@ BENCHMARK_NAME := $(BINDIR)benchmark
 CORE_CC_ALL_SRCS := \
 $(wildcard tensorflow/core/*.cc) \
 $(wildcard tensorflow/core/common_runtime/*.cc) \
+$(wildcard tensorflow/core/debug/*.cc) \
 $(wildcard tensorflow/core/framework/*.cc) \
 $(wildcard tensorflow/core/graph/*.cc) \
 $(wildcard tensorflow/core/lib/*/*.cc) \
@@ -436,7 +437,6 @@ $(wildcard tensorflow/core/*/*/*test.cc) \
 $(wildcard tensorflow/core/*/*/*testutil*) \
 $(wildcard tensorflow/core/*/*/*testlib*) \
 $(wildcard tensorflow/core/*/*/*main.cc) \
-$(wildcard tensorflow/core/debug/*.cc) \
 $(wildcard tensorflow/core/graph/dot.*) \
 $(wildcard tensorflow/core/lib/gif/*) \
 $(wildcard tensorflow/core/lib/io/zlib*) \

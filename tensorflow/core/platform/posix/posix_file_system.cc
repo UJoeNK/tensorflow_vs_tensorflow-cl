@@ -191,11 +191,8 @@ Status PosixFileSystem::NewReadOnlyMemoryRegionFromFile(
   return s;
 }
 
-Status PosixFileSystem::FileExists(const string& fname) {
-  if (access(TranslateName(fname).c_str(), F_OK) == 0) {
-    return Status::OK();
-  }
-  return errors::NotFound(fname, " not found");
+bool PosixFileSystem::FileExists(const string& fname) {
+  return access(TranslateName(fname).c_str(), F_OK) == 0;
 }
 
 Status PosixFileSystem::GetChildren(const string& dir,

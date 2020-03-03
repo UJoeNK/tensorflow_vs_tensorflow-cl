@@ -14,11 +14,10 @@ Construct Bernoulli distributions.
 *  <b>`logits`</b>: An N-D `Tensor` representing the log-odds
     of a positive event. Each entry in the `Tensor` parametrizes
     an independent Bernoulli distribution where the probability of an event
-    is sigmoid(logits). Only one of `logits` or `p` should be passed in.
+    is sigmoid(logits).
 *  <b>`p`</b>: An N-D `Tensor` representing the probability of a positive
       event. Each entry in the `Tensor` parameterizes an independent
-      Bernoulli distribution. Only one of `logits` or `p` should be passed
-      in.
+      Bernoulli distribution.
 *  <b>`dtype`</b>: dtype for samples.
 *  <b>`validate_args`</b>: `Boolean`, default `False`.  Whether to validate that
     `0 <= p <= 1`. If `validate_args` is `False`, and the inputs are
@@ -78,7 +77,7 @@ independent distributions of this kind the instance represents.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.cdf(value, name='cdf', **condition_kwargs)` {#Bernoulli.cdf}
+#### `tf.contrib.distributions.Bernoulli.cdf(value, name='cdf')` {#Bernoulli.cdf}
 
 Cumulative distribution function.
 
@@ -93,36 +92,12 @@ cdf(x) := P[X <= x]
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
 
 *  <b>`cdf`</b>: a `Tensor` of shape `sample_shape(x) + self.batch_shape` with
     values of type `self.dtype`.
-
-
-- - -
-
-#### `tf.contrib.distributions.Bernoulli.copy(**override_parameters_kwargs)` {#Bernoulli.copy}
-
-Creates a deep copy of the distribution.
-
-Note: the copy distribution may continue to depend on the original
-intialization arguments.
-
-##### Args:
-
-
-*  <b>`**override_parameters_kwargs`</b>: String/value dictionary of initialization
-    arguments to override with new values.
-
-##### Returns:
-
-
-*  <b>`distribution`</b>: A new instance of `type(self)` intitialized from the union
-    of self.parameters and override_parameters_kwargs, i.e.,
-    `dict(self.parameters, **override_parameters_kwargs)`.
 
 
 - - -
@@ -136,7 +111,7 @@ The `DType` of `Tensor`s handled by this `Distribution`.
 
 #### `tf.contrib.distributions.Bernoulli.entropy(name='entropy')` {#Bernoulli.entropy}
 
-Shannon entropy in nats.
+Shanon entropy in nats.
 
 
 - - -
@@ -200,7 +175,7 @@ Same meaning as `event_shape`. May be only partially defined.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.log_cdf(value, name='log_cdf', **condition_kwargs)` {#Bernoulli.log_cdf}
+#### `tf.contrib.distributions.Bernoulli.log_cdf(value, name='log_cdf')` {#Bernoulli.log_cdf}
 
 Log cumulative distribution function.
 
@@ -219,7 +194,6 @@ a more accurate answer than simply taking the logarithm of the `cdf` when
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -230,7 +204,7 @@ a more accurate answer than simply taking the logarithm of the `cdf` when
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.log_pdf(value, name='log_pdf', **condition_kwargs)` {#Bernoulli.log_pdf}
+#### `tf.contrib.distributions.Bernoulli.log_pdf(value, name='log_pdf')` {#Bernoulli.log_pdf}
 
 Log probability density function.
 
@@ -239,7 +213,6 @@ Log probability density function.
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -255,7 +228,7 @@ Log probability density function.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.log_pmf(value, name='log_pmf', **condition_kwargs)` {#Bernoulli.log_pmf}
+#### `tf.contrib.distributions.Bernoulli.log_pmf(value, name='log_pmf')` {#Bernoulli.log_pmf}
 
 Log probability mass function.
 
@@ -264,7 +237,6 @@ Log probability mass function.
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -280,7 +252,7 @@ Log probability mass function.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.log_prob(value, name='log_prob', **condition_kwargs)` {#Bernoulli.log_prob}
+#### `tf.contrib.distributions.Bernoulli.log_prob(value, name='log_prob')` {#Bernoulli.log_prob}
 
 Log probability density/mass function (depending on `is_continuous`).
 
@@ -289,7 +261,6 @@ Log probability density/mass function (depending on `is_continuous`).
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -300,7 +271,7 @@ Log probability density/mass function (depending on `is_continuous`).
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.log_survival_function(value, name='log_survival_function', **condition_kwargs)` {#Bernoulli.log_survival_function}
+#### `tf.contrib.distributions.Bernoulli.log_survival_function(value, name='log_survival_function')` {#Bernoulli.log_survival_function}
 
 Log survival function.
 
@@ -320,7 +291,6 @@ survival function, which are more accurate than `1 - cdf(x)` when `x >> 1`.
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -332,7 +302,7 @@ survival function, which are more accurate than `1 - cdf(x)` when `x >> 1`.
 
 #### `tf.contrib.distributions.Bernoulli.logits` {#Bernoulli.logits}
 
-Log-odds of success.
+
 
 
 - - -
@@ -364,7 +334,7 @@ Name prepended to all ops created by this `Distribution`.
 
 #### `tf.contrib.distributions.Bernoulli.p` {#Bernoulli.p}
 
-Probability of success.
+
 
 
 - - -
@@ -413,12 +383,12 @@ param_shapes with static (i.e. TensorShape) shapes.
 
 #### `tf.contrib.distributions.Bernoulli.parameters` {#Bernoulli.parameters}
 
-Dictionary of parameters used to instantiate this `Distribution`.
+Dictionary of parameters used by this `Distribution`.
 
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.pdf(value, name='pdf', **condition_kwargs)` {#Bernoulli.pdf}
+#### `tf.contrib.distributions.Bernoulli.pdf(value, name='pdf')` {#Bernoulli.pdf}
 
 Probability density function.
 
@@ -427,7 +397,6 @@ Probability density function.
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -443,7 +412,7 @@ Probability density function.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.pmf(value, name='pmf', **condition_kwargs)` {#Bernoulli.pmf}
+#### `tf.contrib.distributions.Bernoulli.pmf(value, name='pmf')` {#Bernoulli.pmf}
 
 Probability mass function.
 
@@ -452,7 +421,6 @@ Probability mass function.
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -468,7 +436,7 @@ Probability mass function.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.prob(value, name='prob', **condition_kwargs)` {#Bernoulli.prob}
+#### `tf.contrib.distributions.Bernoulli.prob(value, name='prob')` {#Bernoulli.prob}
 
 Probability density/mass function (depending on `is_continuous`).
 
@@ -477,7 +445,6 @@ Probability density/mass function (depending on `is_continuous`).
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -495,7 +462,7 @@ Probability density/mass function (depending on `is_continuous`).
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.sample(sample_shape=(), seed=None, name='sample', **condition_kwargs)` {#Bernoulli.sample}
+#### `tf.contrib.distributions.Bernoulli.sample(sample_shape=(), seed=None, name='sample')` {#Bernoulli.sample}
 
 Generate samples of the specified shape.
 
@@ -508,7 +475,6 @@ sample.
 *  <b>`sample_shape`</b>: 0D or 1D `int32` `Tensor`. Shape of the generated samples.
 *  <b>`seed`</b>: Python integer seed for RNG
 *  <b>`name`</b>: name to give to the op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -518,7 +484,7 @@ sample.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.sample_n(n, seed=None, name='sample_n', **condition_kwargs)` {#Bernoulli.sample_n}
+#### `tf.contrib.distributions.Bernoulli.sample_n(n, seed=None, name='sample_n')` {#Bernoulli.sample_n}
 
 Generate `n` samples.
 
@@ -529,7 +495,6 @@ Generate `n` samples.
     observations to sample.
 *  <b>`seed`</b>: Python integer seed for RNG
 *  <b>`name`</b>: name to give to the op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 
@@ -551,7 +516,7 @@ Standard deviation.
 
 - - -
 
-#### `tf.contrib.distributions.Bernoulli.survival_function(value, name='survival_function', **condition_kwargs)` {#Bernoulli.survival_function}
+#### `tf.contrib.distributions.Bernoulli.survival_function(value, name='survival_function')` {#Bernoulli.survival_function}
 
 Survival function.
 
@@ -568,7 +533,6 @@ survival_function(x) = P[X > x]
 
 *  <b>`value`</b>: `float` or `double` `Tensor`.
 *  <b>`name`</b>: The name to give this op.
-*  <b>`**condition_kwargs`</b>: Named arguments forwarded to subclass implementation.
 
 ##### Returns:
 

@@ -71,7 +71,7 @@ class BatchSequencesWithStatesTest(tf.test.TestCase):
       # Saver requires at least one variable.
       v0 = tf.Variable(10.0, name="v0")
       tf.add_to_collection("variable_collection", v0)
-      tf.global_variables_initializer()
+      tf.initialize_all_variables()
       save = tf.train.Saver([v0])
       test_dir = os.path.join(tf.test.get_temp_dir(), "sqss_test")
       filename = os.path.join(test_dir, "metafile")

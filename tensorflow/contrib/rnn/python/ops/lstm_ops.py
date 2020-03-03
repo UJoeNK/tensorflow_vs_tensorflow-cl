@@ -20,8 +20,9 @@ from __future__ import print_function
 import abc
 
 from tensorflow.contrib.rnn.python.ops import fused_rnn_cell
-from tensorflow.contrib.util import loader
+from tensorflow.python.framework import common_shapes
 from tensorflow.python.framework import dtypes
+from tensorflow.python.framework import load_library
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops
@@ -31,8 +32,9 @@ from tensorflow.python.ops import rnn_cell
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.platform import resource_loader
 
-_lstm_ops_so = loader.load_op_library(
+_lstm_ops_so = load_library.load_op_library(
     resource_loader.get_path_to_datafile("_lstm_ops.so"))
+assert _lstm_ops_so, "Could not load _lstm_ops.so."
 
 
 # pylint: disable=invalid-name
@@ -228,6 +230,8 @@ def _block_lstm(seq_len_max,
 
 _lstm_block_cell_grad_outputs = ["cs_prev_grad", "dicfo"]
 
+ops.RegisterShape("LSTMBlockCell")(common_shapes.call_cpp_shape_fn)
+
 
 @ops.RegisterGradient("LSTMBlockCell")
 def _LSTMBlockCellGrad(op, *grad):
@@ -289,6 +293,10 @@ def _LSTMBlockCellGrad(op, *grad):
           wco_grad, b_grad)
 
 
+ops.RegisterShape("LSTMBlockCellGrad")(common_shapes.call_cpp_shape_fn)
+ops.RegisterShape("BlockLSTM")(common_shapes.call_cpp_shape_fn)
+
+
 @ops.RegisterGradient("BlockLSTM")
 def _BlockLSTMGrad(op, *grad):
   """Gradient for BlockLSTM."""
@@ -322,6 +330,9 @@ def _BlockLSTMGrad(op, *grad):
 
   return [None, x_grad, cs_prev_grad, h_prev_grad, w_grad, wci_grad, wco_grad,
           wcf_grad, b_grad]
+
+
+ops.RegisterShape("BlockLSTMGrad")(common_shapes.call_cpp_shape_fn)
 
 
 class LSTMBlockCell(rnn_cell.RNNCell):
@@ -521,7 +532,7 @@ class LSTMBlockWrapper(fused_rnn_cell.FusedRNNCell):
           dtype = initial_state[0].dtype
 
       # create the actual cell
-      if sequence_length is not None:
+      if sequence_length:
         sequence_length = ops.convert_to_tensor(sequence_length)
       initial_cell_state, initial_output = initial_state  # pylint: disable=unpacking-non-sequence
       cell_states, outputs = self._call_cell(inputs, initial_cell_state,

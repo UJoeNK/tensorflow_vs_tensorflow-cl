@@ -143,7 +143,7 @@ Status ZlibOutputBuffer::FlushOutputBufferToFile() {
   return Status::OK();
 }
 
-Status ZlibOutputBuffer::Append(const StringPiece& data) {
+Status ZlibOutputBuffer::Write(StringPiece data) {
   // If there is sufficient free space in z_stream_input_ to fit data we
   // add it there and return.
   // If there isn't enough space we deflate the existing contents of
@@ -195,11 +195,6 @@ Status ZlibOutputBuffer::Flush() {
   TF_RETURN_IF_ERROR(DeflateBuffered());
   TF_RETURN_IF_ERROR(FlushOutputBufferToFile());
   return Status::OK();
-}
-
-Status ZlibOutputBuffer::Sync() {
-  TF_RETURN_IF_ERROR(Flush());
-  return file_->Sync();
 }
 
 Status ZlibOutputBuffer::Close() {

@@ -81,6 +81,7 @@ fi
 cat ${LOG_FILE}
 echo ""
 
+
 # Clean up the newly created tfrecord file in GCS bucket.
 # First, activate gcloud service account
 "${GCLOUD_BIN}" auth activate-service-account \

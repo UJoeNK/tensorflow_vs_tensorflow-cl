@@ -66,11 +66,6 @@
 #                                 servers
 #   TF_DIST_DOCKER_NO_CACHE:      do not use cache when building docker images
 
-die() {
-  echo $@
-  exit 1
-}
-
 DOCKER_IMG_NAME="tensorflow/tf-dist-test-client"
 
 # Get current script directory

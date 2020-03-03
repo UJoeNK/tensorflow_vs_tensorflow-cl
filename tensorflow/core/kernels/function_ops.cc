@@ -23,7 +23,6 @@ limitations under the License.
 #include "tensorflow/core/framework/function.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/gradients.h"
 #include "tensorflow/core/graph/graph_constructor.h"
@@ -87,51 +86,26 @@ class RetvalOp : public OpKernel {
 REGISTER_KERNEL_BUILDER(Name("_Arg").Device(DEVICE_CPU), ArgOp);
 REGISTER_KERNEL_BUILDER(Name("_Retval").Device(DEVICE_CPU), RetvalOp);
 
-#if TENSORFLOW_USE_SYCL
-#define REGISTER(type)     \
-  REGISTER_KERNEL_BUILDER( \
-      Name("_Arg").Device(DEVICE_SYCL).TypeConstraint<type>("T"), ArgOp);
-TF_CALL_NUMBER_TYPES_NO_INT32(REGISTER)
-TF_CALL_bool(REGISTER) REGISTER_KERNEL_BUILDER(Name("_Arg")
-                                                   .Device(DEVICE_GPU)
-                                                   .HostMemory("output")
-                                                   .TypeConstraint<int32>("T"),
-                                               ArgOp);
-#undef REGISTER
-#define REGISTER(type)                                               \
-  REGISTER_KERNEL_BUILDER(                                           \
-      Name("_Retval").Device(DEVICE_SYCL).TypeConstraint<type>("T"), \
-      RetvalOp);
-TF_CALL_NUMBER_TYPES_NO_INT32(REGISTER)
-TF_CALL_bool(REGISTER) REGISTER_KERNEL_BUILDER(Name("_Retval")
-                                                   .Device(DEVICE_GPU)
-                                                   .HostMemory("input")
-                                                   .TypeConstraint<int32>("T"),
-                                               RetvalOp);
-#undef REGISTER
-#endif
-
-#define REGISTER(type)     \
-  REGISTER_KERNEL_BUILDER( \
-      Name("_Arg").Device(DEVICE_GPU).TypeConstraint<type>("T"), ArgOp);
-TF_CALL_NUMBER_TYPES_NO_INT32(REGISTER)
-TF_CALL_bool(REGISTER) REGISTER_KERNEL_BUILDER(Name("_Arg")
-                                                   .Device(DEVICE_GPU)
-                                                   .HostMemory("output")
-                                                   .TypeConstraint<int32>("T"),
-                                               ArgOp);
-#undef REGISTER
-
-#define REGISTER(type)     \
-  REGISTER_KERNEL_BUILDER( \
+#define REGISTER_GPU_KERNELS(type)                                       \
+  REGISTER_KERNEL_BUILDER(                                               \
+      Name("_Arg").Device(DEVICE_GPU).TypeConstraint<type>("T"), ArgOp); \
+  REGISTER_KERNEL_BUILDER(                                               \
       Name("_Retval").Device(DEVICE_GPU).TypeConstraint<type>("T"), RetvalOp);
-TF_CALL_NUMBER_TYPES_NO_INT32(REGISTER)
-TF_CALL_bool(REGISTER) REGISTER_KERNEL_BUILDER(Name("_Retval")
-                                                   .Device(DEVICE_GPU)
-                                                   .HostMemory("input")
-                                                   .TypeConstraint<int32>("T"),
-                                               RetvalOp);
-#undef REGISTER
+REGISTER_GPU_KERNELS(Eigen::half);
+REGISTER_GPU_KERNELS(float);
+REGISTER_GPU_KERNELS(double);
+#undef REGISTER_GPU_KERNELS
+
+REGISTER_KERNEL_BUILDER(Name("_Arg")
+                            .Device(DEVICE_GPU)
+                            .HostMemory("output")
+                            .TypeConstraint<int32>("T"),
+                        ArgOp);
+REGISTER_KERNEL_BUILDER(Name("_Retval")
+                            .Device(DEVICE_GPU)
+                            .HostMemory("input")
+                            .TypeConstraint<int32>("T"),
+                        RetvalOp);
 
 class PassOn : public OpKernel {
  public:

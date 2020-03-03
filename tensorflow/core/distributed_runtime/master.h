@@ -46,9 +46,6 @@ class Master {
   void ExtendSession(const ExtendSessionRequest* req,
                      ExtendSessionResponse* resp, MyClosure done);
 
-  void PartialRunSetup(const PartialRunSetupRequest* req,
-                       PartialRunSetupResponse* resp, MyClosure done);
-
   void RunStep(CallOptions* opts, const RunStepRequest* req,
                RunStepResponse* resp, MyClosure done);
 

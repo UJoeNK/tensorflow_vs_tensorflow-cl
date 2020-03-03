@@ -342,12 +342,6 @@ TF_CALL_float(REGISTER_CPU_KERNELS);
 #if GOOGLE_CUDA
 // The slow version (but compiles for GPU)
 
-// A dummy type to group forward backward filter autotune results together.
-struct ConvBackwardFilterAutoTuneGroup {};
-typedef AutoTuneSingleton<ConvBackwardFilterAutoTuneGroup, ConvParameters,
-                          perftools::gputools::dnn::AlgorithmConfig>
-    AutoTuneConvBwdFilter;
-
 // Backprop for filter.
 template <typename Device, class T>
 class Conv2DSlowBackpropFilterOp : public OpKernel {
@@ -610,8 +604,7 @@ class Conv2DSlowBackpropFilterOp : public OpKernel {
     };
     AlgorithmConfig algorithm_config;
     if (cudnn_use_autotune_ &&
-        !AutoTuneConvBwdFilter::GetInstance()->Find(conv_parameters,
-                                                    &algorithm_config)) {
+        !autotune_results_.Find(conv_parameters, &algorithm_config)) {
       std::vector<AlgorithmType> algorithms;
       CHECK(stream->parent()->GetConvolveBackwardFilterAlgorithms(&algorithms));
       ProfileResult best_result;
@@ -654,8 +647,7 @@ class Conv2DSlowBackpropFilterOp : public OpKernel {
       algorithm_config.set_algorithm(best_result.algorithm());
       algorithm_config.set_algorithm_no_scratch(
           best_result_no_scratch.algorithm());
-      AutoTuneConvBwdFilter::GetInstance()->Insert(conv_parameters,
-                                                   algorithm_config);
+      autotune_results_.Insert(conv_parameters, algorithm_config);
     }
     CudnnScratchAllocator scratch_allocator(ConvolveBackwardFilterScratchSize,
                                             context);
@@ -687,6 +679,8 @@ class Conv2DSlowBackpropFilterOp : public OpKernel {
   Padding padding_;
   bool use_cudnn_;
   TensorFormat data_format_;
+  AutoTuneMap<ConvParameters, perftools::gputools::dnn::AlgorithmConfig>
+      autotune_results_;
   bool cudnn_use_autotune_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(Conv2DSlowBackpropFilterOp);
@@ -739,11 +733,11 @@ REGISTER_KERNEL_BUILDER(Name("Conv2DBackpropFilter")
                             .TypeConstraint<float>("T")
                             .HostMemory("filter_sizes"),
                         Conv2DSlowBackpropFilterOp<GPUDevice, float>);
-REGISTER_KERNEL_BUILDER(Name("Conv2DBackpropFilter")
-                            .Device(DEVICE_GPU)
-                            .TypeConstraint<Eigen::half>("T")
-                            .HostMemory("filter_sizes"),
-                        Conv2DSlowBackpropFilterOp<GPUDevice, Eigen::half>);
+// REGISTER_KERNEL_BUILDER(Name("Conv2DBackpropFilter")
+//                             .Device(DEVICE_GPU)
+//                             .TypeConstraint<Eigen::half>("T")
+//                             .HostMemory("filter_sizes"),
+//                         Conv2DSlowBackpropFilterOp<GPUDevice, Eigen::half>);
 #endif  // GOOGLE_CUDA
 
 }  // namespace tensorflow

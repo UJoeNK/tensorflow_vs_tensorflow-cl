@@ -2,10 +2,6 @@
 
 Returns which elements of x are finite.
 
-@compatibility(numpy)
-Equivalent to np.isfinite
-@end_compatibility
-
 ##### Args:
 
 

@@ -123,17 +123,15 @@ public class TensorFlowImageClassifier implements Classifier {
     // on the provided parameters.
     bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
     for (int i = 0; i < intValues.length; ++i) {
-      final int val = intValues[i];
-      floatValues[i * 3 + 0] = (((val >> 16) & 0xFF) - imageMean) / imageStd;
-      floatValues[i * 3 + 1] = (((val >> 8) & 0xFF) - imageMean) / imageStd;
-      floatValues[i * 3 + 2] = ((val & 0xFF) - imageMean) / imageStd;
+      floatValues[i * 3 + 0] = ((intValues[i] & 0xFF) - imageMean) / imageStd;
+      floatValues[i * 3 + 1] = (((intValues[i] >> 8) & 0xFF) - imageMean) / imageStd;
+      floatValues[i * 3 + 2] = (((intValues[i] >> 16) & 0xFF) - imageMean) / imageStd;
     }
     Trace.endSection();
 
     // Copy the input data into TensorFlow.
     Trace.beginSection("fillNodeFloat");
-    inferenceInterface.fillNodeFloat(
-        inputName, new int[] {1, inputSize, inputSize, 3}, floatValues);
+    inferenceInterface.fillNodeFloat(inputName, 1, inputSize, inputSize, 3, floatValues);
     Trace.endSection();
 
     // Run the inference call.
@@ -162,8 +160,7 @@ public class TensorFlowImageClassifier implements Classifier {
       }
     }
     final ArrayList<Recognition> recognitions = new ArrayList<Recognition>();
-    int recognitionsSize = Math.min(pq.size(), MAX_RESULTS);
-    for (int i = 0; i < recognitionsSize; ++i) {
+    for (int i = 0; i < Math.min(pq.size(), MAX_RESULTS); ++i) {
       recognitions.add(pq.poll());
     }
     Trace.endSection(); // "recognizeImage"
