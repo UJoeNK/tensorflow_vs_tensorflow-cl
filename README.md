@@ -1,0 +1,1 @@
+对0.12版本的TensorFlow（此版本与tensorflow-cl最相像）与tensorflow-cl各自的tensorflow文件夹进行比较
